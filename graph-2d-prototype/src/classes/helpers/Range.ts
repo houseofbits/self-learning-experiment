@@ -12,4 +12,9 @@ export default class Range {
     {
         return _.random(this.from, this.to);
     }
+
+    getInterpolated(t: number): number
+    {
+        return this.from + t * (this.to - this.from);
+    }
 };
