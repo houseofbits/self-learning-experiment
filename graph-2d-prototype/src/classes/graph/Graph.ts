@@ -33,6 +33,8 @@ export default class Graph {
   }
 
   generate(generator: BaseGenerator, numberOfNodes: number): void {
+    this.nodes = [];
+    generator.reset();
     for (let index = 0; index < numberOfNodes; index++) {
       this.add(generator.generate())
     }

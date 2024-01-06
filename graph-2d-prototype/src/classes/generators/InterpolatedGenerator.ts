@@ -1,30 +1,32 @@
 import BaseGenerator from '@/classes/generators/BaseGenerator'
 import GraphNode from '@/classes/graph/GraphNode'
-import interpolateArrays from 'interpolate-arrays'
 
 export default class InterpolatedGenerator extends BaseGenerator {
-  generators: Array<BaseGenerator> = []
+    generatorA: BaseGenerator;
+    generatorB: BaseGenerator;
+    value: number;
 
-  constructor(generators: Array<BaseGenerator>) {
-    super();
-    this.generators = generators;
-  }
-
-  generate(): GraphNode {
-    const input = [];
-    for (const generator of this.generators) {
-        const node = generator.generate();
-
-        input.push([
-            node.angleInDegrees,
-            node.length,
-        ]);
+    constructor(generatorA: BaseGenerator, generatorB: BaseGenerator, value: number) {
+        super();
+        this.generatorA = generatorA;
+        this.generatorB = generatorB;
+        this.value = value;
     }
 
-    const result = interpolateArrays(input, 0.5);
+    generate(): GraphNode {
 
-    return new GraphNode(result[0], result[1])
-  }
+        const nodeA = this.generatorA.generate();
+        const nodeB = this.generatorB.generate();
 
-  reset(): void {}
+        return new GraphNode(this.lerp(nodeA.angleInDegrees, nodeB.angleInDegrees, this.value), this.lerp(nodeA.length, nodeB.length, this.value));
+    }
+
+    reset(): void {
+        this.generatorA.reset();
+        this.generatorB.reset();
+    }
+
+    lerp(a: number, b: number, t: number): number {
+        return a + t * (b - a);
+    }
 }

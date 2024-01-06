@@ -1,0 +1,15 @@
+import _ from 'lodash';
+export default class Range {
+    from: number;
+    to: number;
+
+    constructor(from: number, to: number) {
+        this.from = from;
+        this.to = to;
+    }
+
+    getRandom(): number
+    {
+        return _.random(this.from, this.to);
+    }
+};
