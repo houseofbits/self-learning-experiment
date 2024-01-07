@@ -1,14 +1,16 @@
 <script setup lang="ts">
 import InputButton from './components/UI/InputButton.vue'
-import {onMounted} from 'vue'
+import {onMounted, ref} from 'vue'
 import SimpleLabel from './components/UI/SimpleLabel.vue'
 import Graph from '@/classes/graph/Graph'
 import RandomGenerator from '@/classes/generators/RandomGenerator'
 import WaveGenerator from '@/classes/generators/WaveGenerator'
 import InterpolatedGenerator from '@/classes/generators/InterpolatedGenerator'
-import WaveGraph from "@/classes/WaveGraph";
+import ParametricGenerator from "@/classes/generators/PrametricGenerator";
 
 let ctx: CanvasRenderingContext2D | null = null
+
+const iterationCount = ref(0);
 
 function getContext(): CanvasRenderingContext2D | null {
   const canvas: HTMLCanvasElement | null = <HTMLCanvasElement | null>(
@@ -62,39 +64,62 @@ function drawGraph(
 }
 
 function generate(): void {
+
+  generateIteration();
+  return;
+
+  const parametricGenerator = new ParametricGenerator();
   // const randomGenerator = new RandomGenerator(-45, 45, 30, 30);
-  // const waveGenerator = new WaveGenerator();
+  const waveGenerator = new WaveGenerator(30);
   // const interpolatedGenerator = new InterpolatedGenerator(
   //     randomGenerator,
   //     waveGenerator,
   //     0.5);
   //
-  // const graphA = new Graph();
-  // const graphB = new Graph();
+  const graphA = new Graph();
+  const graphB = new Graph();
   // const graphC = new Graph();
   //
-  // graphA.generate(randomGenerator, 40);
-  // graphB.generate(waveGenerator, 40);
+  graphA.generate(parametricGenerator, 40);
+  graphB.generate(waveGenerator, 40);
   // graphC.generate(interpolatedGenerator, 40);
-
-  const waveGraph = new WaveGraph();
-  waveGraph.generate();
 
   if (ctx) {
     ctx.reset();
 
-    waveGraph.draw(ctx, 200,10,'green');
+    graphA.draw(ctx, 200, 10, 'green');
 
     // graphA.draw(ctx, 200, 10, 'green');
-    // graphB.draw(ctx, 300, 10, 'red');
+    graphB.draw(ctx, 300, 10, 'red');
     // graphC.draw(ctx, 500, 10, 'blue');
   }
+}
+
+function generateIteration(): void {
+  const parametricGenerator = new ParametricGenerator();
+  const graph = new Graph();
+
+  parametricGenerator.beginIteration(0.2);
+  iterationCount.value = 0;
+
+  let intervalId = setInterval(() => {
+    if (parametricGenerator.step()) {
+      iterationCount.value++;
+      graph.generate(parametricGenerator, 40);
+      if (ctx) {
+        ctx.reset();
+        graph.draw(ctx, 200, 10, 'green');
+      }
+    } else {
+      clearInterval(intervalId);
+    }
+  }, 50);
 }
 
 onMounted(() => {
   ctx = getContext()
 
-  generate();
+  // generate();
 })
 </script>
 
@@ -103,7 +128,7 @@ onMounted(() => {
     <canvas id="container" width="800" height="1200"></canvas>
 
     <InputButton left="840" top="20" @click="generate">Generate</InputButton>
-    <!-- <SimpleLabel title="Label" left="840" top="80">1234<template #suffix>px</template></SimpleLabel> -->
+    <SimpleLabel title="Iterations" left="840" top="80">{{ iterationCount }}</SimpleLabel>
   </div>
 </template>
 
@@ -115,4 +140,3 @@ onMounted(() => {
   border: solid 1px gray;
 }
 </style>
-./classes/generators/RandomGenerator./classes/generators/WaveGenerator./classes/graph/Graph

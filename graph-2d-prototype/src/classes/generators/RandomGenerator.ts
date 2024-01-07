@@ -1,25 +1,21 @@
 import BaseGenerator from "@/classes/generators//BaseGenerator";
 import GraphNode from "@/classes/graph/GraphNode";
-import _ from 'lodash';
+import Range from "@/classes/helpers/Range";
 
 export default class RandomGenerator extends BaseGenerator {
 
-    angleMin: number;
-    angleMax: number;
-    lengthMin: number;
-    lengthMax: number;
-
+    angle: Range;
+    length: Range;
     constructor(angleMin: number, angleMax: number, lengthMin: number, lengthMax: number) {
         super();
-        this.angleMin = angleMin;
-        this.angleMax = angleMax;
-        this.lengthMin = lengthMin;
-        this.lengthMax = lengthMax;
+
+        this.angle = new Range(angleMin, angleMax);
+        this.length = new Range(lengthMin, lengthMax);
     }
 
     generate(): GraphNode 
     {
-        return new GraphNode(_.random(this.angleMin, this.angleMax), _.random(this.lengthMin, this.lengthMax));
+        return new GraphNode(this.angle.getRandom(), this.length.getRandom());
     }
 
     reset(): void {

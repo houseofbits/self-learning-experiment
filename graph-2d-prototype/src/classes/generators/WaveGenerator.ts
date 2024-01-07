@@ -1,5 +1,6 @@
 import BaseGenerator from "@/classes/generators/BaseGenerator"
 import GraphNode from "@/classes/graph/GraphNode"
+import Range from "@/classes/helpers/Range";
 
 export default class WaveGenerator extends BaseGenerator {
 
@@ -8,13 +9,16 @@ export default class WaveGenerator extends BaseGenerator {
     xOffset: number = 0;
     xScale: number = 30;
     yScale: number = 1;
+    lengthRange: Range;
 
-    constructor() {
+    constructor(lengthMin: number, lengthMax: number = lengthMin) {
         super();
         this.length = 30;
+        this.lengthRange = new Range(lengthMin, lengthMax);
     }
 
     generate(): GraphNode {
+        this.length = this.lengthRange.getRandom();
         const derivative = Math.cos(this.xOffset + (this.xPosition / this.xScale));
         const angle = Math.atan2(derivative, 1) * this.yScale;
         const angleDegrees = (angle * 180) / Math.PI;
