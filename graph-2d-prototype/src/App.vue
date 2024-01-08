@@ -7,15 +7,21 @@ import RandomGenerator from '@/classes/generators/RandomGenerator'
 import WaveGenerator from '@/classes/generators/WaveGenerator'
 import InterpolatedGenerator from '@/classes/generators/InterpolatedGenerator'
 import ParametricGenerator from '@/classes/generators/PrametricGenerator'
+import FitnessPrediction from '@/classes/FitnessPrediction'
 import fileDownload from 'js-file-download'
+import trainingData from '@/assets/trainingData/fixedStepWaveTrainingData.json'
+import * as tf from '@tensorflow/tfjs'
+import Range from '@/classes/helpers/Range'
 
-const ITERATION_INTERAVAL_MS = 50
+const ITERATION_INTERAVAL_MS = 100
 
 let ctx: CanvasRenderingContext2D | null = null
 const iterationCount = ref(0)
 const totalIterations = ref(0)
 const fitnessValue = ref(0)
-let generatedTrainingData: Array<{input: Array<Array<number>>, output: number}> = []
+const trainingProgress = ref(0)
+let generatedTrainingData: Array<Array<number>> = []
+let generatedTrainingOutputs: Array<number> = []
 
 function getContext(): CanvasRenderingContext2D | null {
   const canvas: HTMLCanvasElement | null = <HTMLCanvasElement | null>(
@@ -89,16 +95,17 @@ function generateIteration(): void {
   iterationCount.value = 0
   totalIterations.value = parametricGenerator.getIterationCount()
   generatedTrainingData = []
+  generatedTrainingOutputs = []
 
   let intervalId = setInterval(() => {
     if (parametricGenerator.iterate()) {
       iterationCount.value++
       fitnessValue.value = parametricGenerator.calculateFitnessValueForCurrentIteration()
       graph.generate(parametricGenerator, 40)
-      generatedTrainingData.push({
-        input: graph.toArray(),
-        output: fitnessValue.value
-      })
+
+      generatedTrainingData.push(graph.toArray())
+      generatedTrainingOutputs.push(fitnessValue.value)
+
       if (ctx) {
         ctx.reset()
         graph.draw(ctx, 200, 10, 'green')
@@ -110,11 +117,71 @@ function generateIteration(): void {
 }
 
 function download() {
-  fileDownload(
-    JSON.stringify(generatedTrainingData, null, 3),
-    'trainingData.json',
-    'application/json'
+  const trainingData = {
+    input: generatedTrainingData,
+    output: generatedTrainingOutputs
+  }
+
+  fileDownload(JSON.stringify(trainingData, null, 3), 'trainingData.json', 'application/json')
+}
+
+async function train() {
+  trainingProgress.value = 0
+
+  const dataSize = trainingData.input[0].length
+  const dataPointsSize = trainingData.input.length
+
+  const model = tf.sequential()
+  model.add(tf.layers.dense({ units: 80, inputShape: [dataSize], activation: 'sigmoid' }))
+  model.add(tf.layers.dense({ units: 40, activation: 'sigmoid' }))
+  model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }))
+//   model.compile({ optimizer: 'sgd', loss: 'meanSquaredError' })
+  model.compile({ optimizer: tf.train.adam(0.01), loss: 'meanSquaredError' })
+
+  // Generate some synthetic data for training.
+  const inputTensor = tf.tensor2d(trainingData.input, [dataPointsSize, dataSize])
+  const outputTensor = tf.tensor2d(trainingData.output, [dataPointsSize, 1])
+
+  const epochSize = 1000
+
+  // Train model with fit().
+  await model.fit(inputTensor, outputTensor, {
+    epochs: epochSize,
+    callbacks: {
+      onEpochEnd: (epoch, logs) => {
+        trainingProgress.value = Math.round((epoch / epochSize) * 100)
+      }
+    }
+  })
+
+  const saveResult = await model.save('localstorage://test-model')
+}
+
+async function predictFitness() {
+  const prediction = new FitnessPrediction()
+  await prediction.load('test-model')
+
+  const generator = new InterpolatedGenerator(
+    new WaveGenerator(30),
+    new RandomGenerator(-45, 45, 30, 30),
+   1
   )
+
+  const xScale = new Range(20, 50)
+  const yScale = new Range(0.8, 1.6)
+
+  generator.generatorA.xScale = xScale.getRandom()
+  generator.generatorA.yScale = yScale.getRandom()
+
+  const graph = new Graph()
+  graph.generate(generator, 40)
+
+  await prediction.predict(graph)
+
+  if (ctx) {
+    ctx.reset()
+    graph.draw(ctx, 200, 10, 'blue')
+  }
 }
 
 onMounted(() => {
@@ -134,6 +201,10 @@ onMounted(() => {
     <SimpleLabel title="Fitness" left="840" top="90">{{ fitnessValue }}</SimpleLabel>
 
     <InputButton left="840" top="120" @click="generateRandom">Generate random sample</InputButton>
+    <InputButton left="840" top="170" @click="train">Train</InputButton>
+    <SimpleLabel title="Progress" left="920" top="180">{{ trainingProgress }}%</SimpleLabel>
+
+    <InputButton left="840" top="220" @click="predictFitness">Predict</InputButton>
   </div>
 </template>
 

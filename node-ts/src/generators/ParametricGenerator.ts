@@ -1,8 +1,8 @@
-import BaseGenerator from "@/classes/generators//BaseGenerator";
-import GraphNode from "@/classes/graph/GraphNode";
-import Range from "@/classes/helpers/Range";
-import WaveGenerator from "@/classes/generators/WaveGenerator";
-import RandomGenerator from "@/classes/generators/RandomGenerator";
+import BaseGenerator from "./BaseGenerator";
+import GraphNode from "../graph/GraphNode";
+import Range from "../helpers/Range";
+import WaveGenerator from "./WaveGenerator";
+import RandomGenerator from "./RandomGenerator";
 
 export default class ParametricGenerator extends BaseGenerator {
     waveGenerator: WaveGenerator;
@@ -64,7 +64,7 @@ export default class ParametricGenerator extends BaseGenerator {
         const yScaleFactor = Math.abs(this.waveGenerator.yScale - 1.0) / this.yScale.getLength(); 
         const xScaleFactor = Math.abs(this.waveGenerator.xScale - 30.0) / this.xScale.getLength();         
 
-        const value = 1.0 - (noiseFactor * 0.7 + yScaleFactor * 0.2 + xScaleFactor + 0.1);
+        const value = Math.abs(1.0 - (noiseFactor * 0.7 + yScaleFactor * 0.2 + xScaleFactor * 0.1));
 
         return parseFloat(value.toFixed(2));
     }

@@ -1,6 +1,5 @@
-import BaseGenerator from '@/classes/generators/BaseGenerator'
-
-import GraphNode from '@/classes/graph/GraphNode'
+import BaseGenerator from '../generators/BaseGenerator'
+import GraphNode from './GraphNode';
 
 export default class Graph {
   nodes: Array<GraphNode> = []
@@ -37,40 +36,6 @@ export default class Graph {
     generator.reset();
     for (let index = 0; index < numberOfNodes; index++) {
       this.add(generator.generate())
-    }
-  }
-
-  draw(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    color: string
-  ): void {
-    const points = this.createPoints()
-    const pointSize = 5
-
-    ctx.lineWidth = 2
-    ctx.strokeStyle = color
-    ctx.beginPath()
-    ctx.moveTo(x, y)
-    for (const point of points) {
-      ctx.lineTo(x + point.x, y + point.y)
-    }
-    ctx.stroke()
-
-    ctx.lineWidth = 1
-    ctx.fillStyle = 'white'
-    ctx.beginPath()
-    ctx.arc(x, y, pointSize, 0, 2 * Math.PI)
-    ctx.fill()
-    ctx.stroke()
-
-    for (const point of points) {
-      ctx.strokeStyle = color
-      ctx.beginPath()
-      ctx.arc(x + point.x, y + point.y, pointSize, 0, 2 * Math.PI)
-      ctx.fill()
-      ctx.stroke()
     }
   }
 

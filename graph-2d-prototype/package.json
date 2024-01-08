@@ -13,6 +13,7 @@
     "format": "prettier --write src/"
   },
   "dependencies": {
+    "@tensorflow/tfjs": "^4.15.0",
     "interpolate-arrays": "^1.0.4",
     "js-file-download": "^0.4.12",
     "lodash": "^4.17.21",
