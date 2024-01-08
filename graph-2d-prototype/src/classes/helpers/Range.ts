@@ -17,4 +17,9 @@ export default class Range {
     {
         return this.from + t * (this.to - this.from);
     }
+
+    getLength(): number
+    {
+        return Math.abs(this.to - this.from);
+    }
 };

@@ -1,20 +1,25 @@
 <script setup lang="ts">
 import InputButton from './components/UI/InputButton.vue'
-import {onMounted, ref} from 'vue'
+import { onMounted, ref } from 'vue'
 import SimpleLabel from './components/UI/SimpleLabel.vue'
 import Graph from '@/classes/graph/Graph'
 import RandomGenerator from '@/classes/generators/RandomGenerator'
 import WaveGenerator from '@/classes/generators/WaveGenerator'
 import InterpolatedGenerator from '@/classes/generators/InterpolatedGenerator'
-import ParametricGenerator from "@/classes/generators/PrametricGenerator";
+import ParametricGenerator from '@/classes/generators/PrametricGenerator'
+import fileDownload from 'js-file-download'
+
+const ITERATION_INTERAVAL_MS = 50
 
 let ctx: CanvasRenderingContext2D | null = null
-
-const iterationCount = ref(0);
+const iterationCount = ref(0)
+const totalIterations = ref(0)
+const fitnessValue = ref(0)
+let generatedTrainingData: Array<{input: Array<Array<number>>, output: number}> = []
 
 function getContext(): CanvasRenderingContext2D | null {
   const canvas: HTMLCanvasElement | null = <HTMLCanvasElement | null>(
-      document.getElementById('container')
+    document.getElementById('container')
   )
   if (!canvas) {
     return null
@@ -29,11 +34,11 @@ function getContext(): CanvasRenderingContext2D | null {
 }
 
 function drawGraph(
-    ctx: CanvasRenderingContext2D,
-    graph: Graph,
-    x: number,
-    y: number,
-    color: string
+  ctx: CanvasRenderingContext2D,
+  graph: Graph,
+  x: number,
+  y: number,
+  color: string
 ): void {
   const points = graph.createPoints()
   const pointSize = 5
@@ -63,63 +68,57 @@ function drawGraph(
   }
 }
 
-function generate(): void {
+function generateRandom(): void {
+  const parametricGenerator = new ParametricGenerator()
+  const graphA = new Graph()
 
-  generateIteration();
-  return;
-
-  const parametricGenerator = new ParametricGenerator();
-  // const randomGenerator = new RandomGenerator(-45, 45, 30, 30);
-  const waveGenerator = new WaveGenerator(30);
-  // const interpolatedGenerator = new InterpolatedGenerator(
-  //     randomGenerator,
-  //     waveGenerator,
-  //     0.5);
-  //
-  const graphA = new Graph();
-  const graphB = new Graph();
-  // const graphC = new Graph();
-  //
-  graphA.generate(parametricGenerator, 40);
-  graphB.generate(waveGenerator, 40);
-  // graphC.generate(interpolatedGenerator, 40);
+  graphA.generate(parametricGenerator, 40)
 
   if (ctx) {
-    ctx.reset();
+    ctx.reset()
 
-    graphA.draw(ctx, 200, 10, 'green');
-
-    // graphA.draw(ctx, 200, 10, 'green');
-    graphB.draw(ctx, 300, 10, 'red');
-    // graphC.draw(ctx, 500, 10, 'blue');
+    graphA.draw(ctx, 200, 10, 'green')
   }
 }
 
 function generateIteration(): void {
-  const parametricGenerator = new ParametricGenerator();
-  const graph = new Graph();
+  const parametricGenerator = new ParametricGenerator()
+  const graph = new Graph()
 
-  parametricGenerator.beginIteration(0.2);
-  iterationCount.value = 0;
+  parametricGenerator.beginIteration(0.2)
+  iterationCount.value = 0
+  totalIterations.value = parametricGenerator.getIterationCount()
+  generatedTrainingData = []
 
   let intervalId = setInterval(() => {
-    if (parametricGenerator.step()) {
-      iterationCount.value++;
-      graph.generate(parametricGenerator, 40);
+    if (parametricGenerator.iterate()) {
+      iterationCount.value++
+      fitnessValue.value = parametricGenerator.calculateFitnessValueForCurrentIteration()
+      graph.generate(parametricGenerator, 40)
+      generatedTrainingData.push({
+        input: graph.toArray(),
+        output: fitnessValue.value
+      })
       if (ctx) {
-        ctx.reset();
-        graph.draw(ctx, 200, 10, 'green');
+        ctx.reset()
+        graph.draw(ctx, 200, 10, 'green')
       }
     } else {
-      clearInterval(intervalId);
+      clearInterval(intervalId)
     }
-  }, 50);
+  }, ITERATION_INTERAVAL_MS)
+}
+
+function download() {
+  fileDownload(
+    JSON.stringify(generatedTrainingData, null, 3),
+    'trainingData.json',
+    'application/json'
+  )
 }
 
 onMounted(() => {
   ctx = getContext()
-
-  // generate();
 })
 </script>
 
@@ -127,8 +126,14 @@ onMounted(() => {
   <div>
     <canvas id="container" width="800" height="1200"></canvas>
 
-    <InputButton left="840" top="20" @click="generate">Generate</InputButton>
-    <SimpleLabel title="Iterations" left="840" top="80">{{ iterationCount }}</SimpleLabel>
+    <InputButton left="840" top="20" @click="generateIteration">Generate training data</InputButton>
+    <InputButton left="1050" top="20" @click="download">Download</InputButton>
+    <SimpleLabel title="Iterations" left="840" top="70"
+      >{{ iterationCount }} of {{ totalIterations }}</SimpleLabel
+    >
+    <SimpleLabel title="Fitness" left="840" top="90">{{ fitnessValue }}</SimpleLabel>
+
+    <InputButton left="840" top="120" @click="generateRandom">Generate random sample</InputButton>
   </div>
 </template>
 

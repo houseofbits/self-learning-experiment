@@ -23,7 +23,7 @@ export default class ParametricGenerator extends BaseGenerator {
         this.randomGenerator = new RandomGenerator(-45, 45, 30, 30);
         this.xOffset = new Range(0, 50);
         this.xScale = new Range(20, 50);
-        this.yScale = new Range(1, 1.8);
+        this.yScale = new Range(0.8, 1.6);
         this.noise = new Range(0, 0.5);
     }
 
@@ -40,11 +40,14 @@ export default class ParametricGenerator extends BaseGenerator {
                 }
             }
         }
-
-        console.log("Number of iterations: " + this.iterations.length);
     }
 
-    step(): boolean {
+    getIterationCount(): number 
+    {
+        return this.iterations.length;
+    }
+
+    iterate(): boolean {
         this.waveGenerator.yScale = this.yScale.getInterpolated(this.iterations[this.currentIteration][0]);
         this.waveGenerator.xScale = this.xScale.getInterpolated(this.iterations[this.currentIteration][1]);
         this.waveGenerator.xOffset = this.xOffset.getInterpolated(this.iterations[this.currentIteration][2]);
@@ -53,6 +56,17 @@ export default class ParametricGenerator extends BaseGenerator {
         this.currentIteration++;
 
         return this.currentIteration < this.iterations.length;
+    }
+
+    calculateFitnessValueForCurrentIteration(): number 
+    {
+        const noiseFactor = this.noiseValue / this.noise.getLength();
+        const yScaleFactor = Math.abs(this.waveGenerator.yScale - 1.0) / this.yScale.getLength(); 
+        const xScaleFactor = Math.abs(this.waveGenerator.xScale - 30.0) / this.xScale.getLength();         
+
+        const value = 1.0 - ((noiseFactor + yScaleFactor + xScaleFactor) / 3.0);
+
+        return parseFloat(value.toFixed(2));
     }
 
     generate(): GraphNode {

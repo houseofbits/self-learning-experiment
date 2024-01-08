@@ -73,4 +73,11 @@ export default class Graph {
       ctx.stroke()
     }
   }
+
+  toArray(): Array<Array<number>> 
+  {
+    return this.nodes.map((node: GraphNode) => {
+        return [node.angleInDegrees, node.length];
+    });
+  }
 }
