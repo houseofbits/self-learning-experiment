@@ -1,25 +1,36 @@
 <script setup lang="ts">
 import InputButton from './components/UI/InputButton.vue'
+import ProgressIndicator from './components/UI/ProgressIndicator.vue'
+import InputRange from './components/UI/InputRange.vue'
 import { onMounted, ref } from 'vue'
 import SimpleLabel from './components/UI/SimpleLabel.vue'
 import Graph from '@/classes/graph/Graph'
-import RandomGenerator from '@/classes/generators/RandomGenerator'
-import WaveGenerator from '@/classes/generators/WaveGenerator'
-import InterpolatedGenerator from '@/classes/generators/InterpolatedGenerator'
 import ParametricGenerator from '@/classes/generators/PrametricGenerator'
-import FitnessPrediction from '@/classes/FitnessPrediction'
+import FitnessClassifier from '@/classes/classifiers/FitnessClassifier'
+import GraphFitnessTraining from '@/classes/classifiers/GraphFitnessTraining'
 import fileDownload from 'js-file-download'
 import trainingData from '@/assets/trainingData/fixedStepWaveTrainingData.json'
-import * as tf from '@tensorflow/tfjs'
 import Range from '@/classes/helpers/Range'
 
 const ITERATION_INTERAVAL_MS = 100
 
 let ctx: CanvasRenderingContext2D | null = null
+
 const iterationCount = ref(0)
 const totalIterations = ref(0)
 const fitnessValue = ref(0)
+const generationProgress = ref(0)
+const isGenerationInProgress = ref(false)
+
+const isTrainingInProgress = ref(false)
 const trainingProgress = ref(0)
+const training = new GraphFitnessTraining()
+
+const fitnessPredictionRandomness = ref(0)
+const fitnessPredictionFrequency = ref(30)
+const predictedFitness = ref(0)
+const calculatedFitness = ref(0)
+
 let generatedTrainingData: Array<Array<number>> = []
 let generatedTrainingOutputs: Array<number> = []
 
@@ -39,55 +50,9 @@ function getContext(): CanvasRenderingContext2D | null {
   return ctx
 }
 
-function drawGraph(
-  ctx: CanvasRenderingContext2D,
-  graph: Graph,
-  x: number,
-  y: number,
-  color: string
-): void {
-  const points = graph.createPoints()
-  const pointSize = 5
-
-  ctx.lineWidth = 2
-  ctx.strokeStyle = color
-  ctx.beginPath()
-  ctx.moveTo(x, y)
-  for (const point of points) {
-    ctx.lineTo(x + point.x, y + point.y)
-  }
-  ctx.stroke()
-
-  ctx.lineWidth = 1
-  ctx.fillStyle = 'white'
-  ctx.beginPath()
-  ctx.arc(x, y, pointSize, 0, 2 * Math.PI)
-  ctx.fill()
-  ctx.stroke()
-
-  for (const point of points) {
-    ctx.strokeStyle = color
-    ctx.beginPath()
-    ctx.arc(x + point.x, y + point.y, pointSize, 0, 2 * Math.PI)
-    ctx.fill()
-    ctx.stroke()
-  }
-}
-
-function generateRandom(): void {
-  const parametricGenerator = new ParametricGenerator()
-  const graphA = new Graph()
-
-  graphA.generate(parametricGenerator, 40)
-
-  if (ctx) {
-    ctx.reset()
-
-    graphA.draw(ctx, 200, 10, 'green')
-  }
-}
-
 function generateIteration(): void {
+  isGenerationInProgress.value = true
+
   const parametricGenerator = new ParametricGenerator()
   const graph = new Graph()
 
@@ -100,6 +65,8 @@ function generateIteration(): void {
   let intervalId = setInterval(() => {
     if (parametricGenerator.iterate()) {
       iterationCount.value++
+      generationProgress.value = Math.round((iterationCount.value / totalIterations.value) * 100)
+
       fitnessValue.value = parametricGenerator.calculateFitnessValueForCurrentIteration()
       graph.generate(parametricGenerator, 40)
 
@@ -112,6 +79,7 @@ function generateIteration(): void {
       }
     } else {
       clearInterval(intervalId)
+      isGenerationInProgress.value = false
     }
   }, ITERATION_INTERAVAL_MS)
 }
@@ -126,57 +94,33 @@ function download() {
 }
 
 async function train() {
-  trainingProgress.value = 0
+  isTrainingInProgress.value = true
 
-  const dataSize = trainingData.input[0].length
-  const dataPointsSize = trainingData.input.length
-
-  const model = tf.sequential()
-  model.add(tf.layers.dense({ units: 80, inputShape: [dataSize], activation: 'sigmoid' }))
-  model.add(tf.layers.dense({ units: 40, activation: 'sigmoid' }))
-  model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }))
-//   model.compile({ optimizer: 'sgd', loss: 'meanSquaredError' })
-  model.compile({ optimizer: tf.train.adam(0.01), loss: 'meanSquaredError' })
-
-  // Generate some synthetic data for training.
-  const inputTensor = tf.tensor2d(trainingData.input, [dataPointsSize, dataSize])
-  const outputTensor = tf.tensor2d(trainingData.output, [dataPointsSize, 1])
-
-  const epochSize = 1000
-
-  // Train model with fit().
-  await model.fit(inputTensor, outputTensor, {
-    epochs: epochSize,
-    callbacks: {
-      onEpochEnd: (epoch, logs) => {
-        trainingProgress.value = Math.round((epoch / epochSize) * 100)
-      }
-    }
+  await training.train(trainingData, (progress: number) => {
+    trainingProgress.value = progress
   })
 
-  const saveResult = await model.save('localstorage://test-model')
+  isTrainingInProgress.value = false
 }
 
 async function predictFitness() {
-  const prediction = new FitnessPrediction()
-  await prediction.load('test-model')
+  const classifier = new FitnessClassifier()
+  await classifier.load('test-model')
 
-  const generator = new InterpolatedGenerator(
-    new WaveGenerator(30),
-    new RandomGenerator(-45, 45, 30, 30),
-   1
-  )
-
-  const xScale = new Range(20, 50)
-  const yScale = new Range(0.8, 1.6)
-
-  generator.generatorA.xScale = xScale.getRandom()
-  generator.generatorA.yScale = yScale.getRandom()
-
+  const generator = new ParametricGenerator()
   const graph = new Graph()
+
+  generator.setInterpolationValue(fitnessPredictionRandomness.value)
+  generator
+    .getWaveGenerator()
+    .setFrequency(fitnessPredictionFrequency.value) //Range.random(20, 60)
+    .setAmplitude(Range.random(0.8, 1.6))
+    .setPhase(Range.random(0, 50))
+
   graph.generate(generator, 40)
 
-  await prediction.predict(graph)
+  predictedFitness.value = await classifier.predict(graph)
+  calculatedFitness.value = generator.calculateFitnessValueForCurrentIteration()
 
   if (ctx) {
     ctx.reset()
@@ -193,18 +137,72 @@ onMounted(() => {
   <div>
     <canvas id="container" width="800" height="1200"></canvas>
 
-    <InputButton left="840" top="20" @click="generateIteration">Generate training data</InputButton>
-    <InputButton left="1050" top="20" @click="download">Download</InputButton>
-    <SimpleLabel title="Iterations" left="840" top="70"
-      >{{ iterationCount }} of {{ totalIterations }}</SimpleLabel
+    <InputButton
+      left="840"
+      top="20"
+      :is-disabled="isGenerationInProgress"
+      @click="generateIteration"
+      >Generate training data</InputButton
     >
-    <SimpleLabel title="Fitness" left="840" top="90">{{ fitnessValue }}</SimpleLabel>
+    <InputButton
+      v-if="!isGenerationInProgress && generatedTrainingData.length"
+      left="1050"
+      top="20"
+      @click="download"
+      >Download</InputButton
+    >
 
-    <InputButton left="840" top="120" @click="generateRandom">Generate random sample</InputButton>
-    <InputButton left="840" top="170" @click="train">Train</InputButton>
-    <SimpleLabel title="Progress" left="920" top="180">{{ trainingProgress }}%</SimpleLabel>
+    <ProgressIndicator
+      v-if="isGenerationInProgress"
+      :title="'Generating data ' + iterationCount + ' of ' + totalIterations"
+      left="840"
+      top="70"
+      :value="generationProgress"
+    />
+
+    <SimpleLabel v-if="isGenerationInProgress" title="Fitness" left="840" top="110">{{
+      fitnessValue
+    }}</SimpleLabel>
+
+    <InputButton left="840" top="160" @click="train" :is-disabled="isTrainingInProgress"
+      >Train</InputButton
+    >
+    <InputButton
+      v-if="!isTrainingInProgress && training.model"
+      left="920"
+      top="160"
+      @click="training.downloadModel()"
+      >Download model</InputButton
+    >
+
+    <ProgressIndicator
+      v-if="isTrainingInProgress"
+      title="Training"
+      left="920"
+      top="165"
+      :value="trainingProgress"
+    />
 
     <InputButton left="840" top="220" @click="predictFitness">Predict</InputButton>
+    <SimpleLabel title="Predicted/Calculated fitness" left="940" top="230"
+      >{{ predictedFitness }} / {{ calculatedFitness }}</SimpleLabel
+    >
+    <InputRange
+      v-model="fitnessPredictionRandomness"
+      title="Randomness"
+      left="840"
+      top="270"
+      min="0"
+      max="1"
+    />
+    <InputRange
+      v-model="fitnessPredictionFrequency"
+      title="Wave frequency"
+      left="840"
+      top="320"
+      min="10"
+      max="60"
+    />
   </div>
 </template>
 

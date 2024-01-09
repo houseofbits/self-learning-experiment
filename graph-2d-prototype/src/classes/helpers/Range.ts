@@ -22,4 +22,9 @@ export default class Range {
     {
         return Math.abs(this.to - this.from);
     }
+
+    static random(from: number, to: number): number
+    {
+        return _.random(from, to);
+    }
 };

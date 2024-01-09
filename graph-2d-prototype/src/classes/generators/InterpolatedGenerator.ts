@@ -29,4 +29,21 @@ export default class InterpolatedGenerator extends BaseGenerator {
     lerp(a: number, b: number, t: number): number {
         return a + t * (b - a);
     }
+
+    getGeneratorA<T>(): T
+    {
+        return (<T>this.generatorA);
+    }
+
+    getGeneratorB<T>(): T
+    {
+        return (<T>this.generatorB);
+    } 
+    
+    setInterpolationValue(value: number): InterpolatedGenerator
+    {
+        this.value = value;
+        
+        return this;
+    }
 }

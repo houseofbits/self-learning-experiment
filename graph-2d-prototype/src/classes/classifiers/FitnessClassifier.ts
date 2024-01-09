@@ -1,7 +1,7 @@
 import * as tf from '@tensorflow/tfjs'
-import type Graph from './graph/Graph';
+import type Graph from '../graph/Graph';
 
-export default class FitnessPrediction 
+export default class FitnessClassifier 
 {
     model: null | tf.LayersModel = null;
 
@@ -18,7 +18,9 @@ export default class FitnessPrediction
                 tf.tensor2d(data, [1, data.length])
             )
 
-            console.log(await result.data());
+            const values = await result.data();
+
+            return values[0].toFixed(2);
         }
     }
 }

@@ -13,7 +13,11 @@ const props = defineProps({
     top: {
         type: [String, Number],
         required: true,
-    }
+    },
+    isDisabled: {
+        type: [Boolean, String],
+        default: false,
+    }    
 });
 
 const style = computed(() => {
@@ -26,7 +30,7 @@ const style = computed(() => {
 </script>
 
 <template>
-    <div class="button" :style="style">{{ title }} <slot /></div>
+    <div class="button" :class="{disabled: isDisabled}" :style="style">{{ title }} <slot /></div>
 </template>
 
 <style lang="scss" scoped>
@@ -48,9 +52,19 @@ const style = computed(() => {
     font-size: 16px;
     box-shadow: rgba(0, 0, 0, 0.05) 0px 1px 0px 0px, rgba(0, 0, 0, 0.2) 0px -1px 0px 0px inset;
     user-select: none;
+    transition: all 200ms;
+
+    &.disabled {
+        pointer-events: none;
+        opacity: 0.5
+    }
     
     &:hover {
         background: #009b74;
     }
+
+    &:active {
+        box-shadow: 0 3px 2px 0 rgba(0,0,0,0.2);
+    }    
 }
 </style>

@@ -6,21 +6,38 @@ export default class WaveGenerator extends BaseGenerator {
 
     length: number;
     xPosition: number = 0;
-    xOffset: number = 0;
-    xScale: number = 30;
-    yScale: number = 1;
-    lengthRange: Range;
+    phase: number = 0;
+    frequency: number = 30;
+    amplitude: number = 1;
 
-    constructor(lengthMin: number, lengthMax: number = lengthMin) {
+    constructor(lengt: number) {
         super();
-        this.length = 30;
-        this.lengthRange = new Range(lengthMin, lengthMax);
+        this.length = lengt;
     }
 
+    setLength(value: number): WaveGenerator {
+        this.length = value;
+        return this;
+    }
+
+    setFrequency(value: number): WaveGenerator {
+        this.frequency = value;
+        return this;
+    }
+
+    setAmplitude(value: number): WaveGenerator {
+        this.amplitude = value;
+        return this;
+    }
+    
+    setPhase(value: number): WaveGenerator {
+        this.phase = value;
+        return this;
+    }    
+
     generate(): GraphNode {
-        this.length = this.lengthRange.getRandom();
-        const derivative = Math.cos(this.xOffset + (this.xPosition / this.xScale));
-        const angle = Math.atan2(derivative, 1) * this.yScale;
+        const derivative = Math.cos(this.phase + (this.xPosition / this.frequency));
+        const angle = Math.atan2(derivative, 1) * this.amplitude;
         const angleDegrees = (angle * 180) / Math.PI;
 
         const stepVector = this.createVector(angleDegrees, this.length);
