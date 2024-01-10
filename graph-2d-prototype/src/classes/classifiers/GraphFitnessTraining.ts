@@ -3,19 +3,19 @@ import TrainingData from '@/classes/helpers/TrainingData'
 
 export default class GraphFitnessTraining 
 {
-  model: tf.Sequential | null = null
+  model: tf.Sequential | null = null;
 
   createModel(dataSize: number): void {
     this.model = tf.sequential()
     this.model.add(tf.layers.dense({ units: 80, inputShape: [dataSize], activation: 'sigmoid' }))
-    this.model.add(tf.layers.dense({ units: 40, activation: 'sigmoid' }))
+    this.model.add(tf.layers.dense({ units: 60, activation: 'sigmoid' }))
     this.model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }))
-    this.model.compile({ optimizer: tf.train.adam(0.01), loss: 'meanSquaredError' })
+    this.model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' })
   }
 
   async train(trainingData: TrainingData, callback: CallableFunction) 
   {
-    const epochSize = 1000
+    const epochSize = 10000
     const dataSize = trainingData.input[0].length
     const dataSetSize = trainingData.input.length
 
@@ -25,10 +25,22 @@ export default class GraphFitnessTraining
     const outputTensor = tf.tensor2d(trainingData.output, [dataSetSize, 1])
 
     if (this.model) {
+        
+        let totalT = 0;
+        let prevT = Date.now();
+
       await this.model.fit(inputTensor, outputTensor, {
         epochs: epochSize,
         callbacks: {
-          onEpochEnd: (epoch) => callback(Math.round((epoch / epochSize) * 100))
+          onEpochEnd: (epoch) => {
+            const t = Date.now();
+            totalT += (t - prevT);
+            prevT = t;
+
+            if(epoch>1) {
+                callback(epoch, epochSize, totalT / epoch);
+            }
+          }
         }
       })
     }

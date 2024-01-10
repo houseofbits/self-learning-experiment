@@ -2,7 +2,7 @@
 import InputButton from './components/UI/InputButton.vue'
 import ProgressIndicator from './components/UI/ProgressIndicator.vue'
 import InputRange from './components/UI/InputRange.vue'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import SimpleLabel from './components/UI/SimpleLabel.vue'
 import Graph from '@/classes/graph/Graph'
 import ParametricGenerator from '@/classes/generators/PrametricGenerator'
@@ -11,6 +11,7 @@ import GraphFitnessTraining from '@/classes/classifiers/GraphFitnessTraining'
 import fileDownload from 'js-file-download'
 import trainingData from '@/assets/trainingData/fixedStepWaveTrainingData.json'
 import Range from '@/classes/helpers/Range'
+import Time from '@/classes/helpers/Time'
 
 const ITERATION_INTERAVAL_MS = 100
 
@@ -24,6 +25,8 @@ const isGenerationInProgress = ref(false)
 
 const isTrainingInProgress = ref(false)
 const trainingProgress = ref(0)
+const remainingTrainingTime = ref<string|null>(null);
+
 const training = new GraphFitnessTraining()
 
 const fitnessPredictionRandomness = ref(0)
@@ -95,17 +98,22 @@ function download() {
 
 async function train() {
   isTrainingInProgress.value = true
+  remainingTrainingTime.value = null;
 
-  await training.train(trainingData, (progress: number) => {
-    trainingProgress.value = progress
+  await training.train(trainingData, (currentStep: number, totalSteps: number, msPerStep: number) => {
+    trainingProgress.value = Math.round((currentStep / totalSteps) * 100)
+    const remainingMs = (totalSteps - currentStep) * msPerStep;
+    remainingTrainingTime.value = Time.msToFormattedTime(remainingMs);
   })
 
+
+  remainingTrainingTime.value = null;
   isTrainingInProgress.value = false
 }
 
 async function predictFitness() {
   const classifier = new FitnessClassifier()
-  await classifier.load('test-model')
+  await classifier.load()
 
   const generator = new ParametricGenerator()
   const graph = new Graph()
@@ -127,6 +135,14 @@ async function predictFitness() {
     graph.draw(ctx, 200, 10, 'blue')
   }
 }
+
+const trainingProgressBarTitle = computed(() => {
+    let title = 'Training';
+    if (remainingTrainingTime.value) {
+        title += ' ' + remainingTrainingTime.value;
+    }
+    return title;
+});
 
 onMounted(() => {
   ctx = getContext()
@@ -177,7 +193,7 @@ onMounted(() => {
 
     <ProgressIndicator
       v-if="isTrainingInProgress"
-      title="Training"
+      :title="trainingProgressBarTitle"
       left="920"
       top="165"
       :value="trainingProgress"

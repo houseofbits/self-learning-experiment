@@ -5,9 +5,8 @@ export default class FitnessClassifier
 {
     model: null | tf.LayersModel = null;
 
-
-    async load(location: string) {
-        this.model = await tf.loadLayersModel('localstorage://' + location);
+    async load() {
+        this.model = await tf.loadLayersModel('http://localhost:5173/downloads/graph-fitness-model/model.json');        
     }
 
     async predict(graph: Graph) 
