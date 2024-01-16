@@ -9,13 +9,14 @@ export default class GraphFitnessTraining
     this.model = tf.sequential()
     this.model.add(tf.layers.dense({ units: 80, inputShape: [dataSize], activation: 'sigmoid' }))
     this.model.add(tf.layers.dense({ units: 60, activation: 'sigmoid' }))
+    this.model.add(tf.layers.dense({ units: 40, activation: 'sigmoid' }))
     this.model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }))
     this.model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' })
   }
 
   async train(trainingData: TrainingData, callback: CallableFunction) 
   {
-    const epochSize = 10000
+    const epochSize = 1000
     const dataSize = trainingData.input[0].length
     const dataSetSize = trainingData.input.length
 

@@ -12,6 +12,9 @@ import fileDownload from 'js-file-download'
 import trainingData from '@/assets/trainingData/fixedStepWaveTrainingData.json'
 import Range from '@/classes/helpers/Range'
 import Time from '@/classes/helpers/Time'
+import GeneticTest from '@/classes/GeneticTest'
+import NNGeneticTest from './classes/NNGeneticTest'
+import * as tf from '@tensorflow/tfjs'
 
 const ITERATION_INTERAVAL_MS = 100
 
@@ -25,7 +28,7 @@ const isGenerationInProgress = ref(false)
 
 const isTrainingInProgress = ref(false)
 const trainingProgress = ref(0)
-const remainingTrainingTime = ref<string|null>(null);
+const remainingTrainingTime = ref<string | null>(null)
 
 const training = new GraphFitnessTraining()
 
@@ -36,6 +39,8 @@ const calculatedFitness = ref(0)
 
 let generatedTrainingData: Array<Array<number>> = []
 let generatedTrainingOutputs: Array<number> = []
+
+const nnGeneticTest = new NNGeneticTest()
 
 function getContext(): CanvasRenderingContext2D | null {
   const canvas: HTMLCanvasElement | null = <HTMLCanvasElement | null>(
@@ -98,16 +103,18 @@ function download() {
 
 async function train() {
   isTrainingInProgress.value = true
-  remainingTrainingTime.value = null;
+  remainingTrainingTime.value = null
 
-  await training.train(trainingData, (currentStep: number, totalSteps: number, msPerStep: number) => {
-    trainingProgress.value = Math.round((currentStep / totalSteps) * 100)
-    const remainingMs = (totalSteps - currentStep) * msPerStep;
-    remainingTrainingTime.value = Time.msToFormattedTime(remainingMs);
-  })
+  await training.train(
+    trainingData,
+    (currentStep: number, totalSteps: number, msPerStep: number) => {
+      trainingProgress.value = Math.round((currentStep / totalSteps) * 100)
+      const remainingMs = (totalSteps - currentStep) * msPerStep
+      remainingTrainingTime.value = Time.msToFormattedTime(remainingMs)
+    }
+  )
 
-
-  remainingTrainingTime.value = null;
+  remainingTrainingTime.value = null
   isTrainingInProgress.value = false
 }
 
@@ -137,15 +144,28 @@ async function predictFitness() {
 }
 
 const trainingProgressBarTitle = computed(() => {
-    let title = 'Training';
-    if (remainingTrainingTime.value) {
-        title += ' ' + remainingTrainingTime.value;
+  let title = 'Training'
+  if (remainingTrainingTime.value) {
+    title += ' (Remaining: ' + remainingTrainingTime.value + ')'
+  }
+  return title
+})
+
+function toggleTestGeneticNN() {
+    if (nnGeneticTest.isGenerationRunning) {
+        nnGeneticTest.stop();
+    } else {
+        nnGeneticTest.start();
     }
-    return title;
-});
+}
 
 onMounted(() => {
   ctx = getContext()
+
+  tf.setBackend('cpu')
+
+  //   const genetic = new GeneticTest();
+  //   console.log(genetic.solve('krists'));
 })
 </script>
 
@@ -170,7 +190,7 @@ onMounted(() => {
 
     <ProgressIndicator
       v-if="isGenerationInProgress"
-      :title="'Generating data ' + iterationCount + ' of ' + totalIterations"
+      :title="'Generating samples ' + iterationCount + ' of ' + totalIterations"
       left="840"
       top="70"
       :value="generationProgress"
@@ -200,7 +220,11 @@ onMounted(() => {
     />
 
     <InputButton left="840" top="220" @click="predictFitness">Predict</InputButton>
-    <SimpleLabel title="Predicted/Calculated fitness" left="940" top="230"
+    <SimpleLabel
+      v-if="predictedFitness > 0"
+      title="Predicted/Calculated fitness"
+      left="940"
+      top="230"
       >{{ predictedFitness }} / {{ calculatedFitness }}</SimpleLabel
     >
     <InputRange
@@ -219,6 +243,8 @@ onMounted(() => {
       min="10"
       max="60"
     />
+
+    <InputButton left="840" top="400" @click="toggleTestGeneticNN">Start/Stop Genetic NN</InputButton>
   </div>
 </template>
 
