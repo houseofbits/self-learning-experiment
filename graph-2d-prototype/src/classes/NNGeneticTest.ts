@@ -1,6 +1,7 @@
 import NeuralNetwork from './classifiers/NeuralNetwork'
 import Random from './helpers/Random'
 import _ from 'lodash'
+import ShapingFunctions from './helpers/ShapingFunctions'
 
 /**
  * Novelty search has been applied to evolutionary robotics, most often in the context of neuroevolution
@@ -24,11 +25,11 @@ import _ from 'lodash'
  * If a new individual's novelty is high, it is typically added to the archive.
  */
 
-const POPULATION_SIZE = 10 //500 //1000;
-const MATING_POOL_SIZE = 4 //50
-const MAX_GENERATIONS = 1000
-const MUTATION_RATE = 0.1
-const N_BEHAVIORAL_NEIGHBOURS = 3
+const POPULATION_SIZE = 1000;
+const MATING_POOL_SIZE = 20
+const MAX_GENERATIONS = 50
+const N_BEHAVIORAL_NEIGHBOURS = 20
+const TARGET_FITNESS = 0.995
 
 class NNGeneration {
   network: NeuralNetwork
@@ -77,8 +78,11 @@ export default class NNGeneticTest {
   bestMatch: NNGeneration | null = null
   iterationNum: number = 0
   isGenerationRunning = false
+  callback: CallableFunction | null = null
+  fitnessSpread: number = 0
 
-  start() {
+  start(callback: CallableFunction | null = null) {
+    this.callback = callback
     this.initiateNewPopulation()
     this.isGenerationRunning = true
     this.iterationNum = 0
@@ -90,21 +94,27 @@ export default class NNGeneticTest {
   }
 
   step() {
-    this.mutatePopulation();
-    this.calculatePopulationFitness();
-    this.calculatePopulationNovelty();
-    this.orderPopulationByFitness();
+    this.mutatePopulation()
+    this.calculatePopulationFitness()
+    this.calculateFitnessSpread()
+    this.calculatePopulationNovelty()
+    this.orderPopulationByBestScore()
 
     this.bestMatch = NNGeneration.createCopy(this.population[0])
 
-    if (this.bestMatch.fitness > 0.999) {
+    if (this.bestMatch.fitness > TARGET_FITNESS) {
       this.stop()
     }
 
-    console.log(
-      'Generation: ' + this.iterationNum,
-      ' Fitness: ' + this.bestMatch.fitness + ' Novelty: ' + this.bestMatch.novelty.toFixed(6)
-    )
+    if (this.callback) {
+      this.callback(
+        MAX_GENERATIONS,
+        this.iterationNum,
+        this.bestMatch.fitness,
+        this.bestMatch.novelty,
+        this.calculateScore(this.bestMatch, true)
+      )
+    }
 
     this.population = this.evolvePopulation()
 
@@ -122,6 +132,7 @@ export default class NNGeneticTest {
   }
 
   evolvePopulation(): Array<NNGeneration> {
+    this.orderPopulationByFitness()
     const matingPool = this.population.slice(0, MATING_POOL_SIZE)
 
     const newPopulation = []
@@ -167,22 +178,61 @@ export default class NNGeneticTest {
     for (let i = 0; i < POPULATION_SIZE; i++) {
       this.population.push(new NNGeneration(new NeuralNetwork(null, 2, 4, 1), 0))
     }
-  } 
+  }
 
   /**
    * Mutate population by fixed factor and calculate fitness value
    */
   mutatePopulation() {
+
+    const mutationRate = 1 - this.fitnessSpread;// < 0.1 ? 0.9 : MUTATION_RATE;
+
     for (let a = 0; a < this.population.length; a++) {
-      this.population[a].network.mutate(MUTATION_RATE)
+      this.population[a].network.mutate(mutationRate)
     }
   }
 
-  calculatePopulationFitness()
-  {
+  calculatePopulationFitness() {
     for (let a = 0; a < this.population.length; a++) {
-        this.population[a].fitness = this.calculateFitnessOfNetwork(this.population[a].network)
+      this.population[a].fitness = this.calculateFitnessOfNetwork(this.population[a].network)
+    }
+  }
+
+  orderPopulationByBestScore() {
+    this.population.sort((a: NNGeneration, b: NNGeneration) => {
+      const aval = this.calculateScore(a)
+      const bval = this.calculateScore(b)
+
+      return Math.sign(bval - aval)
+    })
+  }
+
+  calculateFitnessSpread() {
+    let min = 1.0,
+      max = 0
+    for (const individual of this.population) {
+      if (individual.fitness > max) {
+        max = individual.fitness
       }
+      if (individual.fitness < min) {
+        min = individual.fitness
+      }
+    }
+
+    this.fitnessSpread = max - min
+  }
+
+  calculateScore(nn: NNGeneration, best = false): number {
+    // return Math.pow(nn.fitness, FITNESS_POWER_FACTOR) * nn.novelty;
+
+    const val = ShapingFunctions.doubleExponentialSigmoid(nn.fitness - 0.2, 0.7)
+    // const val = ShapingFunctions.doubleExponentialSeat(nn.fitness, 0.3);
+
+    // if (best) {
+    //     console.log(nn.fitness, val);
+    // }
+
+    return nn.fitness * val + (1 - val) * nn.novelty
   }
 
   orderPopulationByFitness() {
@@ -195,7 +245,7 @@ export default class NNGeneticTest {
     this.population.sort((a: NNGeneration, b: NNGeneration) => {
       return Math.sign(b.novelty - a.novelty)
     })
-  }  
+  }
 
   calculateFitnessOfNetwork(network: NeuralNetwork): number {
     let fitness = 0

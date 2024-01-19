@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import InputButton from './components/UI/InputButton.vue'
+import Chart from './components/Chart.vue'
+import LineGraph from './components/UI/LineGraph.vue'
 import ProgressIndicator from './components/UI/ProgressIndicator.vue'
 import InputRange from './components/UI/InputRange.vue'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, reactive } from 'vue'
 import SimpleLabel from './components/UI/SimpleLabel.vue'
 import Graph from '@/classes/graph/Graph'
 import ParametricGenerator from '@/classes/generators/PrametricGenerator'
@@ -15,6 +17,8 @@ import Time from '@/classes/helpers/Time'
 import GeneticTest from '@/classes/GeneticTest'
 import NNGeneticTest from './classes/NNGeneticTest'
 import * as tf from '@tensorflow/tfjs'
+import type LineGraphDataSet from './classes/helpers/LineGraphDataSet'
+import ShapingFunctions from './classes/helpers/ShapingFunctions'
 
 const ITERATION_INTERAVAL_MS = 100
 
@@ -152,20 +156,56 @@ const trainingProgressBarTitle = computed(() => {
 })
 
 function toggleTestGeneticNN() {
-    if (nnGeneticTest.isGenerationRunning) {
-        nnGeneticTest.stop();
-    } else {
-        nnGeneticTest.start();
-    }
+  if (nnGeneticTest.isGenerationRunning) {
+    nnGeneticTest.stop()
+  } else {
+    graphValues[0].data.length = 0
+    graphValues[1].data.length = 0
+    graphValues[2].data.length = 0
+    nnGeneticTest.start(GeneticNNStepCallback)
+  }
+}
+
+const graphValues = reactive<Array<LineGraphDataSet>>([
+    {
+        label: 'Fitness',
+        data: [],
+        color: 'green'
+    },
+    {
+        label: 'Novelty',
+        data: [],
+        color: 'red'
+    },  
+    {
+        label: 'Score',
+        data: [],
+        color: 'blue'
+    },        
+]);
+
+function GeneticNNStepCallback(
+  maxGen: number,
+  currentGen: number,
+  fitness: number,
+  novelty: number,
+  score: number
+) {
+    graphValues[0].data.push(fitness);
+    graphValues[1].data.push(novelty);
+    graphValues[2].data.push(score);
+
+  console.log(
+    'Generation: ' + currentGen,
+    ' Fitness: ' + fitness + ' Novelty: ' + novelty.toFixed(6),
+    ' Best score: ' + score
+  )
 }
 
 onMounted(() => {
   ctx = getContext()
 
   tf.setBackend('cpu')
-
-  //   const genetic = new GeneticTest();
-  //   console.log(genetic.solve('krists'));
 })
 </script>
 
@@ -244,7 +284,21 @@ onMounted(() => {
       max="60"
     />
 
-    <InputButton left="840" top="400" @click="toggleTestGeneticNN">Start/Stop Genetic NN</InputButton>
+    <InputButton left="840" top="400" @click="toggleTestGeneticNN">
+      Start/Stop Genetic NN
+    </InputButton>
+
+    <!-- <Chart
+      :labels="labels"
+      :fitness-values="fitnessValues"
+      :novelty-values="noveltyValues"
+      :score-values="scoreValues"
+      width="900"
+      height="400"
+      top="500"
+      left="840"
+    /> -->
+    <LineGraph width="900" height="600" top="500" left="840" :data="graphValues" />
   </div>
 </template>
 
