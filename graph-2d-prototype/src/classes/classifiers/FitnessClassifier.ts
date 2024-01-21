@@ -9,7 +9,7 @@ export default class FitnessClassifier
         this.model = await tf.loadLayersModel('http://localhost:5173/downloads/graph-fitness-model/model.json');        
     }
 
-    async predict(graph: Graph) 
+    predict(graph: Graph)
     {
         if (this.model) {
             const data = graph.toArray();
@@ -17,9 +17,9 @@ export default class FitnessClassifier
                 tf.tensor2d(data, [1, data.length])
             )
 
-            const values = await result.data();
+            const outputs = result.dataSync()
 
-            return values[0].toFixed(2);
+            return outputs[0];//.toFixed(2);
         }
     }
 }

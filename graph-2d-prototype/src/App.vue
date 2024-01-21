@@ -15,6 +15,8 @@ import Range from '@/classes/helpers/Range'
 import Time from '@/classes/helpers/Time'
 import * as tf from '@tensorflow/tfjs'
 import NNGeneticTestWindow from "@/components/NNGeneticTestWindow.vue";
+import NNGeneticGraphTrainingWindow from "@/components/NNGeneticGraphTrainingWindow.vue";
+import type NeuralNetwork from "@/classes/classifiers/NeuralNetwork";
 
 const ITERATION_INTERVAL_MS = 100
 
@@ -149,6 +151,13 @@ const trainingProgressBarTitle = computed(() => {
   return title
 })
 
+function geneticTrainingFinished(graph: Graph) {
+  if (ctx) {
+    ctx.reset()
+    graph.draw(ctx, 200, 10, 'red')
+  }
+}
+
 onMounted(() => {
   ctx = getContext()
 
@@ -200,8 +209,7 @@ onMounted(() => {
         top="160"
         @click="training.downloadModel()"
     >Download model
-    </InputButton
-    >
+    </InputButton>
 
     <ProgressIndicator
         v-if="isTrainingInProgress"
@@ -238,6 +246,8 @@ onMounted(() => {
     />
 
     <NNGeneticTestWindow />
+
+    <NNGeneticGraphTrainingWindow @finished="geneticTrainingFinished" />
   </div>
 </template>
 

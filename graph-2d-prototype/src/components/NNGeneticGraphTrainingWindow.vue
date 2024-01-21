@@ -3,21 +3,40 @@ import AbsoluteModal from "@/components/UI/AbsoluteModal.vue";
 import {reactive, ref} from "vue";
 import InputButton from "@/components/UI/InputButton.vue";
 import LineGraph from "@/components/UI/LineGraph.vue";
-import NNGeneticTestTraining from "@/classes/NNGeneticTestTraining";
 import type LineGraphDataSet from "@/classes/helpers/LineGraphDataSet";
+import NNGeneticGraphTraining from "@/classes/NNGeneticGraphTraining";
+import type {NNGeneticIndividual} from "@/classes/classifiers/NNGenetic";
+import type NeuralNetwork from "@/classes/classifiers/NeuralNetwork";
+import NNGenerator from "@/classes/generators/NNGenerator";
+import Graph from "@/classes/graph/Graph";
 
-const nnGeneticTest = new NNGeneticTestTraining()
+const emit = defineEmits(['finished']);
+
+const nnGeneticTraining = new NNGeneticGraphTraining()
+
+nnGeneticTraining.finishedCallback = (result: NNGeneticIndividual | null) => {
+  if (result) {
+    const generator = new NNGenerator(result.network);
+    const graph = new Graph();
+
+    graph.generate(generator, 40);
+
+    console.log(graph);
+
+    emit('finished', graph);
+  }
+};
 
 const isModalVisible = ref(false);
 
 function toggleTestGeneticNN() {
-  if (nnGeneticTest.isGenerationRunning) {
-    nnGeneticTest.stop()
+  if (nnGeneticTraining.isGenerationRunning) {
+    nnGeneticTraining.stop()
   } else {
     graphValues[0].data.length = 0
     graphValues[1].data.length = 0
     graphValues[2].data.length = 0
-    nnGeneticTest.start(GeneticNNStepCallback)
+    nnGeneticTraining.start(GeneticNNStepCallback)
   }
 }
 
@@ -56,11 +75,13 @@ function GeneticNNStepCallback(
       ' Best score: ' + score
   )
 }
+
+
 </script>
 <template>
   <div>
     <AbsoluteModal v-if="isModalVisible" height="600" width="800" @close="isModalVisible = false">
-      <template #title>Genetic NN training (Using binary operators AND, OR, XOR as a test data)</template>
+      <template #title>Genetic NN training of a graph reproduction</template>
 
       <LineGraph width="760" height="540" top="10" left="20" :data="graphValues"/>
 
@@ -69,8 +90,8 @@ function GeneticNNStepCallback(
       </InputButton>
     </AbsoluteModal>
 
-    <InputButton left="840" top="400" @click="isModalVisible = true">
-      Open Genetic NN test
+    <InputButton left="840" top="450" @click="isModalVisible = true">
+      Open Genetic NN training
     </InputButton>
   </div>
 </template>

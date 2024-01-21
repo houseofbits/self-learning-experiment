@@ -1,7 +1,7 @@
 import NeuralNetwork from '@/classes/classifiers/NeuralNetwork'
 import NNGenetic from "@/classes/classifiers/NNGenetic";
 
-export default class NNGeneticTest extends NNGenetic{
+export default class NNGeneticTestTraining extends NNGenetic{
   //AND op
   // data = [
   //     {input: [0,0], output: 0},

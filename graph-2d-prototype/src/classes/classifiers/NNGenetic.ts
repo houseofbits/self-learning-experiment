@@ -13,18 +13,18 @@ export class NNGeneticConfiguration {
 
 export class NNGeneticIndividual {
     network: NeuralNetwork
-    fitness: number
+    fitness: number = 0;
     behavioralDistance: Array<number> = []
     novelty: number = 0
 
-    constructor(network: NeuralNetwork, fitness: number) {
+    constructor(network: NeuralNetwork) {
         this.network = network
-        this.fitness = fitness
     }
 
     static createCopy(object: NNGeneticIndividual) {
-        const newObject = new NNGeneticIndividual(object.network.copy(), object.fitness)
+        const newObject = new NNGeneticIndividual(object.network.copy())
 
+        newObject.fitness = object.fitness;
         newObject.behavioralDistance = object.behavioralDistance
         newObject.novelty = object.novelty
 
@@ -98,7 +98,7 @@ export default class NNGenetic {
         const newPopulation = []
         for (let a = 0; a < this.config.populationSize; a++) {
             const index = Random.randomIndex(matingPool.length)
-            newPopulation.push(new NNGeneticIndividual(matingPool[index].network.copy(), 0))
+            newPopulation.push(new NNGeneticIndividual(matingPool[index].network.copy()))
         }
 
         return newPopulation
@@ -136,7 +136,7 @@ export default class NNGenetic {
         this.population = []
 
         for (let i = 0; i < this.config.populationSize; i++) {
-            this.population.push(new NNGeneticIndividual(new NeuralNetwork(null, 2, 4, 1), 0))
+            this.population.push(new NNGeneticIndividual(this.createNetwork()));
         }
     }
 
@@ -215,5 +215,9 @@ export default class NNGenetic {
 
     onGenerationFinished() {
 
+    }
+
+    createNetwork(): NeuralNetwork {
+        return new NeuralNetwork(null, 2, 4, 1);
     }
 }
