@@ -7,6 +7,6 @@ export default class LineGraphSettings {
     yGridInterval: number = 0.05;
     xLabelFractions: number = 0;
     yLabelFractions: number = 2;
-    labelsLeft: number = 850;
-    labelsTop: number = 280;
+    labelsLeft: number = 730;
+    labelsTop: number = 350;
 }

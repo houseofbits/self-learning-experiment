@@ -1,15 +1,17 @@
-import NeuralNetwork from '@src/classes/classifiers/NeuralNetwork'
-import Random from '@src/classes/helpers/Random'
-import _ from 'lodash'
-import ShapingFunctions from '@src/classes/helpers/ShapingFunctions'
+import NeuralNetwork from '@/classes/classifiers/NeuralNetwork'
+import Random from '@/classes/helpers/Random'
+import ShapingFunctions from '@/classes/helpers/ShapingFunctions'
 
-const POPULATION_SIZE = 1000;
-const MATING_POOL_SIZE = 20
-const MAX_GENERATIONS = 50
-const N_BEHAVIORAL_NEIGHBOURS = 20
-const TARGET_FITNESS = 0.995
+export class NNGeneticConfiguration {
 
-export class NNGeneration {
+    populationSize: number = 1000;
+    matingPoolSize: number = 20;
+    maximumGenerations: number = 50;
+    behavioralNeighboursSize: number = 20;
+    targetFitness: number = 0.995
+}
+
+export class NNGeneticIndividual {
     network: NeuralNetwork
     fitness: number
     behavioralDistance: Array<number> = []
@@ -20,8 +22,8 @@ export class NNGeneration {
         this.fitness = fitness
     }
 
-    static createCopy(object: NNGeneration) {
-        const newObject = new NNGeneration(object.network.copy(), object.fitness)
+    static createCopy(object: NNGeneticIndividual) {
+        const newObject = new NNGeneticIndividual(object.network.copy(), object.fitness)
 
         newObject.behavioralDistance = object.behavioralDistance
         newObject.novelty = object.novelty
@@ -31,9 +33,9 @@ export class NNGeneration {
 }
 
 export default class NNGenetic {
-
-    population: Array<NNGeneration> = []
-    bestMatch: NNGeneration | null = null
+    config: NNGeneticConfiguration = new NNGeneticConfiguration();
+    population: Array<NNGeneticIndividual> = []
+    bestMatch: NNGeneticIndividual | null = null
     iterationNum: number = 0
     isGenerationRunning = false
     callback: CallableFunction | null = null
@@ -58,15 +60,15 @@ export default class NNGenetic {
         this.calculatePopulationNovelty()
         this.orderPopulationByBestScore()
 
-        this.bestMatch = NNGeneration.createCopy(this.population[0])
+        this.bestMatch = NNGeneticIndividual.createCopy(this.population[0])
 
-        if (this.bestMatch.fitness > TARGET_FITNESS) {
+        if (this.bestMatch.fitness > this.config.targetFitness) {
             this.stop()
         }
 
         if (this.callback) {
             this.callback(
-                MAX_GENERATIONS,
+                this.config.maximumGenerations,
                 this.iterationNum,
                 this.bestMatch.fitness,
                 this.bestMatch.novelty,
@@ -78,23 +80,25 @@ export default class NNGenetic {
 
         this.iterationNum++
 
-        if (this.iterationNum > MAX_GENERATIONS) {
+        if (this.iterationNum > this.config.maximumGenerations) {
             this.stop()
         }
 
         if (this.isGenerationRunning) {
             setTimeout(this.step.bind(this), 1)
+        } else {
+            this.onGenerationFinished();
         }
     }
 
-    evolvePopulation(): Array<NNGeneration> {
+    evolvePopulation(): Array<NNGeneticIndividual> {
         this.orderPopulationByFitness()
-        const matingPool = this.population.slice(0, MATING_POOL_SIZE)
+        const matingPool = this.population.slice(0, this.config.matingPoolSize)
 
         const newPopulation = []
-        for (let a = 0; a < POPULATION_SIZE; a++) {
+        for (let a = 0; a < this.config.populationSize; a++) {
             const index = Random.randomIndex(matingPool.length)
-            newPopulation.push(new NNGeneration(matingPool[index].network.copy(), 0))
+            newPopulation.push(new NNGeneticIndividual(matingPool[index].network.copy(), 0))
         }
 
         return newPopulation
@@ -120,7 +124,7 @@ export default class NNGenetic {
         //Get the N nearest individuals and calculate novelty as average of those distances
         for (let i = 0; i < this.population.length; i++) {
             this.population[i].behavioralDistance.sort()
-            const values = this.population[i].behavioralDistance.slice(0, N_BEHAVIORAL_NEIGHBOURS)
+            const values = this.population[i].behavioralDistance.slice(0, this.config.behavioralNeighboursSize)
             const sum = values.reduce(function (a, b) {
                 return a + b
             }, 0)
@@ -131,8 +135,8 @@ export default class NNGenetic {
     initiateNewPopulation() {
         this.population = []
 
-        for (let i = 0; i < POPULATION_SIZE; i++) {
-            this.population.push(new NNGeneration(new NeuralNetwork(null, 2, 4, 1), 0))
+        for (let i = 0; i < this.config.populationSize; i++) {
+            this.population.push(new NNGeneticIndividual(new NeuralNetwork(null, 2, 4, 1), 0))
         }
     }
 
@@ -155,7 +159,7 @@ export default class NNGenetic {
     }
 
     orderPopulationByBestScore() {
-        this.population.sort((a: NNGeneration, b: NNGeneration) => {
+        this.population.sort((a: NNGeneticIndividual, b: NNGeneticIndividual) => {
             const aval = this.calculateScore(a)
             const bval = this.calculateScore(b)
 
@@ -178,7 +182,7 @@ export default class NNGenetic {
         this.fitnessSpread = max - min
     }
 
-    calculateScore(nn: NNGeneration, best = false): number {
+    calculateScore(nn: NNGeneticIndividual, best = false): number {
         // return Math.pow(nn.fitness, FITNESS_POWER_FACTOR) * nn.novelty;
 
         const val = ShapingFunctions.doubleExponentialSigmoid(nn.fitness - 0.2, 0.7)
@@ -192,13 +196,13 @@ export default class NNGenetic {
     }
 
     orderPopulationByFitness() {
-        this.population.sort((a: NNGeneration, b: NNGeneration) => {
+        this.population.sort((a: NNGeneticIndividual, b: NNGeneticIndividual) => {
             return Math.sign(b.fitness - a.fitness)
         })
     }
 
     orderPopulationByNovelty() {
-        this.population.sort((a: NNGeneration, b: NNGeneration) => {
+        this.population.sort((a: NNGeneticIndividual, b: NNGeneticIndividual) => {
             return Math.sign(b.novelty - a.novelty)
         })
     }
@@ -207,5 +211,9 @@ export default class NNGenetic {
         //TODO Implement fitness function
 
         return 0.0
+    }
+
+    onGenerationFinished() {
+
     }
 }

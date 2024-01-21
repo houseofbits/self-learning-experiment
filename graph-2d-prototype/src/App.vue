@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import InputButton from './components/UI/InputButton.vue'
-import Chart from './components/Chart.vue'
 import LineGraph from './components/UI/LineGraph.vue'
 import ProgressIndicator from './components/UI/ProgressIndicator.vue'
 import InputRange from './components/UI/InputRange.vue'
-import { computed, onMounted, ref, reactive } from 'vue'
+import {computed, onMounted, ref, reactive} from 'vue'
 import SimpleLabel from './components/UI/SimpleLabel.vue'
 import Graph from '@/classes/graph/Graph'
 import ParametricGenerator from '@/classes/generators/PrametricGenerator'
@@ -14,13 +13,10 @@ import fileDownload from 'js-file-download'
 import trainingData from '@/assets/trainingData/fixedStepWaveTrainingData.json'
 import Range from '@/classes/helpers/Range'
 import Time from '@/classes/helpers/Time'
-import GeneticTest from '@/classes/GeneticTest'
-import NNGeneticTest from './classes/NNGeneticTest'
 import * as tf from '@tensorflow/tfjs'
-import type LineGraphDataSet from './classes/helpers/LineGraphDataSet'
-import ShapingFunctions from './classes/helpers/ShapingFunctions'
+import NNGeneticTestWindow from "@/components/NNGeneticTestWindow.vue";
 
-const ITERATION_INTERAVAL_MS = 100
+const ITERATION_INTERVAL_MS = 100
 
 let ctx: CanvasRenderingContext2D | null = null
 
@@ -44,11 +40,9 @@ const calculatedFitness = ref(0)
 let generatedTrainingData: Array<Array<number>> = []
 let generatedTrainingOutputs: Array<number> = []
 
-const nnGeneticTest = new NNGeneticTest()
-
 function getContext(): CanvasRenderingContext2D | null {
   const canvas: HTMLCanvasElement | null = <HTMLCanvasElement | null>(
-    document.getElementById('container')
+      document.getElementById('container')
   )
   if (!canvas) {
     return null
@@ -93,7 +87,7 @@ function generateIteration(): void {
       clearInterval(intervalId)
       isGenerationInProgress.value = false
     }
-  }, ITERATION_INTERAVAL_MS)
+  }, ITERATION_INTERVAL_MS)
 }
 
 function download() {
@@ -110,12 +104,12 @@ async function train() {
   remainingTrainingTime.value = null
 
   await training.train(
-    trainingData,
-    (currentStep: number, totalSteps: number, msPerStep: number) => {
-      trainingProgress.value = Math.round((currentStep / totalSteps) * 100)
-      const remainingMs = (totalSteps - currentStep) * msPerStep
-      remainingTrainingTime.value = Time.msToFormattedTime(remainingMs)
-    }
+      trainingData,
+      (currentStep: number, totalSteps: number, msPerStep: number) => {
+        trainingProgress.value = Math.round((currentStep / totalSteps) * 100)
+        const remainingMs = (totalSteps - currentStep) * msPerStep
+        remainingTrainingTime.value = Time.msToFormattedTime(remainingMs)
+      }
   )
 
   remainingTrainingTime.value = null
@@ -131,10 +125,10 @@ async function predictFitness() {
 
   generator.setInterpolationValue(fitnessPredictionRandomness.value)
   generator
-    .getWaveGenerator()
-    .setFrequency(fitnessPredictionFrequency.value) //Range.random(20, 60)
-    .setAmplitude(Range.random(0.8, 1.6))
-    .setPhase(Range.random(0, 50))
+      .getWaveGenerator()
+      .setFrequency(fitnessPredictionFrequency.value) //Range.random(20, 60)
+      .setAmplitude(Range.random(0.8, 1.6))
+      .setPhase(Range.random(0, 50))
 
   graph.generate(generator, 40)
 
@@ -155,53 +149,6 @@ const trainingProgressBarTitle = computed(() => {
   return title
 })
 
-function toggleTestGeneticNN() {
-  if (nnGeneticTest.isGenerationRunning) {
-    nnGeneticTest.stop()
-  } else {
-    graphValues[0].data.length = 0
-    graphValues[1].data.length = 0
-    graphValues[2].data.length = 0
-    nnGeneticTest.start(GeneticNNStepCallback)
-  }
-}
-
-const graphValues = reactive<Array<LineGraphDataSet>>([
-    {
-        label: 'Fitness',
-        data: [],
-        color: 'green'
-    },
-    {
-        label: 'Novelty',
-        data: [],
-        color: 'red'
-    },  
-    {
-        label: 'Score',
-        data: [],
-        color: 'blue'
-    },        
-]);
-
-function GeneticNNStepCallback(
-  maxGen: number,
-  currentGen: number,
-  fitness: number,
-  novelty: number,
-  score: number
-) {
-    graphValues[0].data.push(fitness);
-    graphValues[1].data.push(novelty);
-    graphValues[2].data.push(score);
-
-  console.log(
-    'Generation: ' + currentGen,
-    ' Fitness: ' + fitness + ' Novelty: ' + novelty.toFixed(6),
-    ' Best score: ' + score
-  )
-}
-
 onMounted(() => {
   ctx = getContext()
 
@@ -214,91 +161,83 @@ onMounted(() => {
     <canvas id="container" width="800" height="1200"></canvas>
 
     <InputButton
-      left="840"
-      top="20"
-      :is-disabled="isGenerationInProgress"
-      @click="generateIteration"
-      >Generate training data</InputButton
+        left="840"
+        top="20"
+        :is-disabled="isGenerationInProgress"
+        @click="generateIteration"
+    >Generate training data
+    </InputButton
     >
     <InputButton
-      v-if="!isGenerationInProgress && generatedTrainingData.length"
-      left="1050"
-      top="20"
-      @click="download"
-      >Download</InputButton
+        v-if="!isGenerationInProgress && generatedTrainingData.length"
+        left="1050"
+        top="20"
+        @click="download"
+    >Download
+    </InputButton
     >
 
     <ProgressIndicator
-      v-if="isGenerationInProgress"
-      :title="'Generating samples ' + iterationCount + ' of ' + totalIterations"
-      left="840"
-      top="70"
-      :value="generationProgress"
+        v-if="isGenerationInProgress"
+        :title="'Generating samples ' + iterationCount + ' of ' + totalIterations"
+        left="840"
+        top="70"
+        :value="generationProgress"
     />
 
     <SimpleLabel v-if="isGenerationInProgress" title="Fitness" left="840" top="110">{{
-      fitnessValue
-    }}</SimpleLabel>
+        fitnessValue
+      }}
+    </SimpleLabel>
 
     <InputButton left="840" top="160" @click="train" :is-disabled="isTrainingInProgress"
-      >Train</InputButton
+    >Train
+    </InputButton
     >
     <InputButton
-      v-if="!isTrainingInProgress && training.model"
-      left="920"
-      top="160"
-      @click="training.downloadModel()"
-      >Download model</InputButton
+        v-if="!isTrainingInProgress && training.model"
+        left="920"
+        top="160"
+        @click="training.downloadModel()"
+    >Download model
+    </InputButton
     >
 
     <ProgressIndicator
-      v-if="isTrainingInProgress"
-      :title="trainingProgressBarTitle"
-      left="920"
-      top="165"
-      :value="trainingProgress"
+        v-if="isTrainingInProgress"
+        :title="trainingProgressBarTitle"
+        left="920"
+        top="165"
+        :value="trainingProgress"
     />
 
     <InputButton left="840" top="220" @click="predictFitness">Predict</InputButton>
     <SimpleLabel
-      v-if="predictedFitness > 0"
-      title="Predicted/Calculated fitness"
-      left="940"
-      top="230"
-      >{{ predictedFitness }} / {{ calculatedFitness }}</SimpleLabel
+        v-if="predictedFitness > 0"
+        title="Predicted/Calculated fitness"
+        left="940"
+        top="230"
+    >{{ predictedFitness }} / {{ calculatedFitness }}
+    </SimpleLabel
     >
     <InputRange
-      v-model="fitnessPredictionRandomness"
-      title="Randomness"
-      left="840"
-      top="270"
-      min="0"
-      max="1"
+        v-model="fitnessPredictionRandomness"
+        title="Randomness"
+        left="840"
+        top="270"
+        min="0"
+        max="1"
     />
     <InputRange
-      v-model="fitnessPredictionFrequency"
-      title="Wave frequency"
-      left="840"
-      top="320"
-      min="10"
-      max="60"
+        v-model="fitnessPredictionFrequency"
+        title="Wave frequency"
+        left="840"
+        top="320"
+        min="10"
+        max="60"
     />
 
-    <InputButton left="840" top="400" @click="toggleTestGeneticNN">
-      Start/Stop Genetic NN
-    </InputButton>
-
-    <!-- <Chart
-      :labels="labels"
-      :fitness-values="fitnessValues"
-      :novelty-values="noveltyValues"
-      :score-values="scoreValues"
-      width="900"
-      height="400"
-      top="500"
-      left="840"
-    /> -->
-    <LineGraph width="900" height="600" top="500" left="840" :data="graphValues" />
+    <NNGeneticTestWindow />
   </div>
 </template>
 
