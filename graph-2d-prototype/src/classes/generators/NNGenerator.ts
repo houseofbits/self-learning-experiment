@@ -6,23 +6,28 @@ import type Graph from "@/classes/graph/Graph";
 
 export default class NNGenerator extends BaseGenerator {
     network: NeuralNetwork;
+    size: number;
 
-    constructor(network: NeuralNetwork) {
+    constructor(network: NeuralNetwork, size: number = 80) {
         super();
 
         this.network = network;
+        this.size = size;
     }
 
     generate(currentGraph: Graph | null): GraphNode
     {
         const inputData = currentGraph?.toArray() ?? [];
-        while (inputData.length < 80) {
-            inputData.push(0);
+        
+        if (inputData.length < this.size) {
+            while (inputData.length < this.size) {
+                inputData.push(0);
+            }
         }
 
         const outputData = this.network.predict(inputData);
 
-        return new GraphNode(outputData[0], outputData[1]);
+        return new GraphNode(45 - (outputData[0] * 90), outputData[1] * 50);
     }
 
     reset(): void {

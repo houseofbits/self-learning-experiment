@@ -3,7 +3,7 @@ import InputButton from './components/UI/InputButton.vue'
 import LineGraph from './components/UI/LineGraph.vue'
 import ProgressIndicator from './components/UI/ProgressIndicator.vue'
 import InputRange from './components/UI/InputRange.vue'
-import {computed, onMounted, ref, reactive} from 'vue'
+import { computed, onMounted, ref, reactive } from 'vue'
 import SimpleLabel from './components/UI/SimpleLabel.vue'
 import Graph from '@/classes/graph/Graph'
 import ParametricGenerator from '@/classes/generators/PrametricGenerator'
@@ -14,9 +14,9 @@ import trainingData from '@/assets/trainingData/fixedStepWaveTrainingData.json'
 import Range from '@/classes/helpers/Range'
 import Time from '@/classes/helpers/Time'
 import * as tf from '@tensorflow/tfjs'
-import NNGeneticTestWindow from "@/components/NNGeneticTestWindow.vue";
-import NNGeneticGraphTrainingWindow from "@/components/NNGeneticGraphTrainingWindow.vue";
-import type NeuralNetwork from "@/classes/classifiers/NeuralNetwork";
+import NNGeneticTestWindow from '@/components/NNGeneticTestWindow.vue'
+import NNGeneticGraphTrainingWindow from '@/components/NNGeneticGraphTrainingWindow.vue'
+import type NeuralNetwork from '@/classes/classifiers/NeuralNetwork'
 
 const ITERATION_INTERVAL_MS = 100
 
@@ -44,7 +44,7 @@ let generatedTrainingOutputs: Array<number> = []
 
 function getContext(): CanvasRenderingContext2D | null {
   const canvas: HTMLCanvasElement | null = <HTMLCanvasElement | null>(
-      document.getElementById('container')
+    document.getElementById('container')
   )
   if (!canvas) {
     return null
@@ -106,12 +106,12 @@ async function train() {
   remainingTrainingTime.value = null
 
   await training.train(
-      trainingData,
-      (currentStep: number, totalSteps: number, msPerStep: number) => {
-        trainingProgress.value = Math.round((currentStep / totalSteps) * 100)
-        const remainingMs = (totalSteps - currentStep) * msPerStep
-        remainingTrainingTime.value = Time.msToFormattedTime(remainingMs)
-      }
+    trainingData,
+    (currentStep: number, totalSteps: number, msPerStep: number) => {
+      trainingProgress.value = Math.round((currentStep / totalSteps) * 100)
+      const remainingMs = (totalSteps - currentStep) * msPerStep
+      remainingTrainingTime.value = Time.msToFormattedTime(remainingMs)
+    }
   )
 
   remainingTrainingTime.value = null
@@ -119,18 +119,23 @@ async function train() {
 }
 
 async function predictFitness() {
-  const classifier = new FitnessClassifier()
-  await classifier.load()
+  const classifier = new FitnessClassifier(training.model)
+  if (!training.model) {
+    console.log('Predict using stored model');
+    await classifier.load()
+  } else {
+    console.log('Predict using current model');
+  }
 
   const generator = new ParametricGenerator()
   const graph = new Graph()
 
   generator.setInterpolationValue(fitnessPredictionRandomness.value)
   generator
-      .getWaveGenerator()
-      .setFrequency(fitnessPredictionFrequency.value) //Range.random(20, 60)
-      .setAmplitude(Range.random(0.8, 1.6))
-      .setPhase(Range.random(0, 50))
+    .getWaveGenerator()
+    .setFrequency(fitnessPredictionFrequency.value) //Range.random(20, 60)
+    .setAmplitude(Range.random(0.8, 1.6))
+    .setPhase(Range.random(0, 50))
 
   graph.generate(generator, 40)
 
@@ -170,79 +175,74 @@ onMounted(() => {
     <canvas id="container" width="800" height="1200"></canvas>
 
     <InputButton
-        left="840"
-        top="20"
-        :is-disabled="isGenerationInProgress"
-        @click="generateIteration"
-    >Generate training data
-    </InputButton
-    >
+      left="840"
+      top="20"
+      :is-disabled="isGenerationInProgress"
+      @click="generateIteration"
+      >Generate training data
+    </InputButton>
     <InputButton
-        v-if="!isGenerationInProgress && generatedTrainingData.length"
-        left="1050"
-        top="20"
-        @click="download"
-    >Download
-    </InputButton
-    >
-
-    <ProgressIndicator
-        v-if="isGenerationInProgress"
-        :title="'Generating samples ' + iterationCount + ' of ' + totalIterations"
-        left="840"
-        top="70"
-        :value="generationProgress"
-    />
-
-    <SimpleLabel v-if="isGenerationInProgress" title="Fitness" left="840" top="110">{{
-        fitnessValue
-      }}
-    </SimpleLabel>
-
-    <InputButton left="840" top="160" @click="train" :is-disabled="isTrainingInProgress"
-    >Train
-    </InputButton
-    >
-    <InputButton
-        v-if="!isTrainingInProgress && training.model"
-        left="920"
-        top="160"
-        @click="training.downloadModel()"
-    >Download model
+      v-if="!isGenerationInProgress && generatedTrainingData.length"
+      left="1050"
+      top="20"
+      @click="download"
+      >Download
     </InputButton>
 
     <ProgressIndicator
-        v-if="isTrainingInProgress"
-        :title="trainingProgressBarTitle"
-        left="920"
-        top="165"
-        :value="trainingProgress"
+      v-if="isGenerationInProgress"
+      :title="'Generating samples ' + iterationCount + ' of ' + totalIterations"
+      left="840"
+      top="70"
+      :value="generationProgress"
+    />
+
+    <SimpleLabel v-if="isGenerationInProgress" title="Fitness" left="840" top="110"
+      >{{ fitnessValue }}
+    </SimpleLabel>
+
+    <InputButton left="840" top="160" @click="train" :is-disabled="isTrainingInProgress"
+      >Train
+    </InputButton>
+    <InputButton
+      v-if="!isTrainingInProgress && training.model"
+      left="920"
+      top="160"
+      @click="training.downloadModel()"
+      >Download model
+    </InputButton>
+
+    <ProgressIndicator
+      v-if="isTrainingInProgress"
+      :title="trainingProgressBarTitle"
+      left="920"
+      top="165"
+      :value="trainingProgress"
     />
 
     <InputButton left="840" top="220" @click="predictFitness">Predict</InputButton>
     <SimpleLabel
-        v-if="predictedFitness > 0"
-        title="Predicted/Calculated fitness"
-        left="940"
-        top="230"
-    >{{ predictedFitness }} / {{ calculatedFitness }}
-    </SimpleLabel
-    >
+      v-if="predictedFitness > 0"
+      title="Predicted/Calculated fitness"
+      left="940"
+      top="230"
+      >{{ predictedFitness }} / {{ calculatedFitness }}
+    </SimpleLabel>
     <InputRange
-        v-model="fitnessPredictionRandomness"
-        title="Randomness"
-        left="840"
-        top="270"
-        min="0"
-        max="1"
+      v-model="fitnessPredictionRandomness"
+      title="Randomness"
+      left="840"
+      top="270"
+      min="0"
+      max="1"
     />
     <InputRange
-        v-model="fitnessPredictionFrequency"
-        title="Wave frequency"
-        left="840"
-        top="320"
-        min="10"
-        max="60"
+      v-model="fitnessPredictionFrequency"
+      title="Wave frequency"
+      left="840"
+      top="320"
+      min="10"
+      max="60"
     />
 
     <NNGeneticTestWindow />

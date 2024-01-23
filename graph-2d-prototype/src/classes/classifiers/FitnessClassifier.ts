@@ -5,6 +5,10 @@ export default class FitnessClassifier
 {
     model: null | tf.LayersModel = null;
 
+    constructor(model: tf.LayersModel | null = null) {
+        this.model = model;
+    }
+
     async load() {
         this.model = await tf.loadLayersModel('http://localhost:5173/downloads/graph-fitness-model/model.json');        
     }
@@ -19,7 +23,7 @@ export default class FitnessClassifier
 
             const outputs = result.dataSync()
 
-            return outputs[0];//.toFixed(2);
+            return outputs[0];
         }
     }
 }

@@ -6,9 +6,9 @@ import LineGraph from "@/components/UI/LineGraph.vue";
 import type LineGraphDataSet from "@/classes/helpers/LineGraphDataSet";
 import NNGeneticGraphTraining from "@/classes/NNGeneticGraphTraining";
 import type {NNGeneticIndividual} from "@/classes/classifiers/NNGenetic";
-import type NeuralNetwork from "@/classes/classifiers/NeuralNetwork";
 import NNGenerator from "@/classes/generators/NNGenerator";
 import Graph from "@/classes/graph/Graph";
+import LineGraphSettings from "@/classes/helpers/LineGraphSettings";
 
 const emit = defineEmits(['finished']);
 
@@ -16,10 +16,10 @@ const nnGeneticTraining = new NNGeneticGraphTraining()
 
 nnGeneticTraining.finishedCallback = (result: NNGeneticIndividual | null) => {
   if (result) {
-    const generator = new NNGenerator(result.network);
+    const generator = new NNGenerator(result.network, 10);
     const graph = new Graph();
 
-    graph.generate(generator, 40);
+    graph.generate(generator, 5);
 
     console.log(graph);
 
@@ -76,6 +76,9 @@ function GeneticNNStepCallback(
   )
 }
 
+const graphSettings = new LineGraphSettings();
+graphSettings.xRange.to = nnGeneticTraining.config.maximumGenerations;
+graphSettings.xGridInterval = Math.round(nnGeneticTraining.config.maximumGenerations / 25);
 
 </script>
 <template>
@@ -83,7 +86,7 @@ function GeneticNNStepCallback(
     <AbsoluteModal v-if="isModalVisible" height="600" width="800" @close="isModalVisible = false">
       <template #title>Genetic NN training of a graph reproduction</template>
 
-      <LineGraph width="760" height="540" top="10" left="20" :data="graphValues"/>
+      <LineGraph width="760" height="540" top="10" left="20" :data="graphValues" :settings="graphSettings" />
 
       <InputButton left="660" top="465" @click="toggleTestGeneticNN">
         Start / Stop

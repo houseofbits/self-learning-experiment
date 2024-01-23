@@ -32,6 +32,20 @@ export default class NeuralNetwork {
 
     model.add(hidden)
 
+    const hidden2 = tf.layers.dense({
+      units: this.hiddenNodes,
+      activation: 'sigmoid'
+    })
+
+    model.add(hidden2)
+
+    const hidden3 = tf.layers.dense({
+        units: this.hiddenNodes / 2,
+        activation: 'sigmoid'
+      })
+  
+      model.add(hidden3)    
+
     const output = tf.layers.dense({
       units: this.outputNodes,
       activation: 'sigmoid'
@@ -72,10 +86,10 @@ export default class NeuralNetwork {
 
       for (let j = 0; j < values.length; j++) {
         if (Math.random() < mutationRate) {
-            const w = values[j];        
-            values[j] = w + Random.gaussian()
+          const w = values[j]
+          values[j] = w + Random.gaussian()
         }
-        // const w = values[j];        
+        // const w = values[j];
         // values[j] = Random.lerp(w, mutationRate);
       }
 

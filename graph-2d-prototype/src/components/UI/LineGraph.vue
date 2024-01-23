@@ -238,6 +238,5 @@ onMounted(() => {
 <style scoped>
 .canvas {
   position: absolute;
-  border: solid 1px rgb(177, 177, 177);
 }
 </style>

@@ -13,7 +13,7 @@ export default class ParametricGenerator extends InterpolatedGenerator {
   stepSize: number = 0.1
 
   constructor() {
-    super(new WaveGenerator(30), new RandomGenerator(-45, 45, 30, 30), 0)
+    super(new WaveGenerator(30), new RandomGenerator(-45, 45, 0, 50), 0)
 
     this.phaseRange = new Range(0, 50)
     this.frequencyRange = new Range(20, 50)
@@ -68,8 +68,8 @@ export default class ParametricGenerator extends InterpolatedGenerator {
     const xScaleFactor =
       Math.abs(this.getWaveGenerator().frequency - 30.0) / this.frequencyRange.getLength()
 
-    const value = 1.0 - (noiseFactor * 0.7 + yScaleFactor * 0.2 + xScaleFactor + 0.1)
+    const value = (1.0 - noiseFactor) * (1.0 - (noiseFactor * 0.7 + yScaleFactor * 0.2 + xScaleFactor + 0.1))
 
-    return parseFloat(value.toFixed(2))
+    return Math.abs(value);
   }
 }
