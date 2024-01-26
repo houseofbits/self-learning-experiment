@@ -7,11 +7,11 @@ export default class GraphFitnessTraining
 
   createModel(dataSize: number): void {
     this.model = tf.sequential()
-    this.model.add(tf.layers.dense({ units: 80, inputShape: [dataSize], activation: 'sigmoid' }))
-    this.model.add(tf.layers.dense({ units: 60, activation: 'sigmoid' }))
-    this.model.add(tf.layers.dense({ units: 40, activation: 'sigmoid' }))
+    this.model.add(tf.layers.dense({ units: dataSize, inputShape: [dataSize], activation: 'sigmoid' }))
+    this.model.add(tf.layers.dense({ units: dataSize, activation: 'sigmoid' }))
+    this.model.add(tf.layers.dense({ units: Math.round(dataSize * 0.7), activation: 'sigmoid' }))
     this.model.add(tf.layers.dense({ units: 1, activation: 'sigmoid' }))
-    this.model.compile({ optimizer: tf.train.adam(0.001), loss: 'meanSquaredError' })
+    this.model.compile({ optimizer: tf.train.adam(0.0001), loss: 'meanSquaredError' })
   }
 
   async train(trainingData: TrainingData, callback: CallableFunction) 
@@ -21,6 +21,8 @@ export default class GraphFitnessTraining
     const dataSetSize = trainingData.input.length
 
     this.createModel(dataSize)
+
+    console.log('Training data size', dataSize, dataSetSize, trainingData.output.length);
 
     const inputTensor = tf.tensor2d(trainingData.input, [dataSetSize, dataSize])
     const outputTensor = tf.tensor2d(trainingData.output, [dataSetSize, 1])

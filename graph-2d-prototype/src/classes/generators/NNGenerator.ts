@@ -1,10 +1,9 @@
 import BaseGenerator from "@/classes/generators//BaseGenerator";
 import GraphNode from "@/classes/graph/GraphNode";
-import Range from "@/classes/helpers/Range";
 import type NeuralNetwork from "@/classes/classifiers/NeuralNetwork";
 import type Graph from "@/classes/graph/Graph";
 
-export default class NNGenerator extends BaseGenerator {
+export default class NNGenerator extends BaseGenerator<Graph, GraphNode> {
     network: NeuralNetwork;
     size: number;
 
@@ -33,4 +32,4 @@ export default class NNGenerator extends BaseGenerator {
     reset(): void {
 
     }
-};
+}; 

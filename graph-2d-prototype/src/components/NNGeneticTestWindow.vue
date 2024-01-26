@@ -69,7 +69,7 @@ function GeneticNNStepCallback(
       </InputButton>
     </AbsoluteModal>
 
-    <InputButton left="840" top="400" @click="isModalVisible = true">
+    <InputButton left="840" top="500" @click="isModalVisible = true">
       Open Genetic NN test
     </InputButton>
   </div>

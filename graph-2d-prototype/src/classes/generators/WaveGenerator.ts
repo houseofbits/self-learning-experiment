@@ -1,8 +1,8 @@
 import BaseGenerator from "@/classes/generators/BaseGenerator"
 import GraphNode from "@/classes/graph/GraphNode"
-import Range from "@/classes/helpers/Range";
+import Graph from "@/classes/graph/Graph"
 
-export default class WaveGenerator extends BaseGenerator {
+export default class WaveGenerator extends BaseGenerator<Graph, GraphNode> {
 
     length: number;
     xPosition: number = 0;

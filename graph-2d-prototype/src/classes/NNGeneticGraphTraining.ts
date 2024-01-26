@@ -1,63 +1,56 @@
+import FlatWaveGenerator from '@/classes/generators/FlatWaveGenerator'
 import NeuralNetwork from '@/classes/classifiers/NeuralNetwork'
 import NNGenetic, { NNGeneticIndividual } from '@/classes/classifiers/NNGenetic'
-import FitnessClassifier from '@/classes/classifiers/FitnessClassifier'
-import NNGenerator from '@/classes/generators/NNGenerator'
-import Graph from '@/classes/graph/Graph'
+import FlatNNGenerator from '@/classes/generators/FlatNNGenerator'
+import FlatGraph from '@/classes/graph/FlatGraph'
 
-const GRAPH_NODES_SIZE = 5;
+const GRAPH_NODES_SIZE = 10
 
 export default class NNGeneticGraphTraining extends NNGenetic {
-  graphFitnessClassifier: FitnessClassifier = new FitnessClassifier()
   finishedCallback: CallableFunction | null = null
-
+  targetGraph: FlatGraph;
+  
   constructor() {
     super()
 
-    this.config.populationSize = 100
-    this.config.matingPoolSize = 5
-    this.config.targetFitness = 0.99
-    this.config.maximumGenerations = 500;
+    this.config.populationSize = 1000
+    this.config.matingPoolSize = 20
+    this.config.targetFitness = 0.92
+    this.config.maximumGenerations = 500
 
-    this.graphFitnessClassifier.load()
+    const sineWaveGenerator = new FlatWaveGenerator()
+    this.targetGraph = new FlatGraph(GRAPH_NODES_SIZE)
+    sineWaveGenerator.frequency = 0.8;
+    this.targetGraph.generate(sineWaveGenerator)    
   }
+
   calculateFitnessOfNetwork(network: NeuralNetwork): number {
-    const generator = new NNGenerator(network, GRAPH_NODES_SIZE * 2)
+    const generator = new FlatNNGenerator(network)
 
-    const graph = new Graph()
-    graph.generate(generator, GRAPH_NODES_SIZE)
+    const graph = new FlatGraph(GRAPH_NODES_SIZE)
+    graph.generate(generator)
 
-    let minVal = 50
-    let maxVal = 0
-    for (let i = 1; i < graph.nodes.length; i ++) {
-      if (graph.nodes[i].length > maxVal) {
-        maxVal = graph.nodes[i].length
-      }
-      if (graph.nodes[i].length < minVal) {
-        minVal = graph.nodes[i].length
-      }
+    let sum = 1.0;
+    let max = 0;
+    for (let i = 0; i < graph.nodes.length; i++) {
+        const error = Math.abs(this.targetGraph.nodes[i] - graph.nodes[i]);
+
+        if(error > max) {
+            max = error;
+        }
+
+        sum += error;
+
+       // sum *= this.calcTargetValueFitness(graph.nodes[i], this.targetGraph.nodes[i], 100);  //Math.abs(targetGraph.nodes[i] - graph.nodes[i]);
     }
+    
+    sum = sum / graph.nodes.length;
 
-    if (maxVal < 30) {
-        maxVal = 50;
-    }
-
-    if (minVal > 30) {
-        minVal = 0;
-    }    
-
-    const f = Math.min(1.0, Math.abs(30 - (maxVal - minVal) * 0.5) / 30.0)
-
-    return f 
-    * this.calcTargetValueFitness(graph.nodes[0].angleInDegrees, -15, 45)    
-    * this.calcTargetValueFitness(graph.nodes[1].angleInDegrees, 15, 45)
-    * this.calcTargetValueFitness(graph.nodes[2].angleInDegrees, -15, 45)
-    * this.calcTargetValueFitness(graph.nodes[3].angleInDegrees, 15, 45);
-
-    // return this.graphFitnessClassifier.predict(graph);
+    return Math.max(0.0,  1.0 - (sum / 100.0)) * (1 - (max / 100));
   }
 
   calcTargetValueFitness(current: number, target: number, range: number): number {
-    return 1.0 - Math.min(1.0, Math.abs(target - current) / range);
+    return 1.0 - Math.min(1.0, Math.abs(target - current) / range)
   }
 
   onGenerationFinished() {
@@ -71,10 +64,11 @@ export default class NNGeneticGraphTraining extends NNGenetic {
   }
 
   createNetwork(): NeuralNetwork {
-    return new NeuralNetwork(null, GRAPH_NODES_SIZE * 2, GRAPH_NODES_SIZE * 2, 2)
+//    return new NeuralNetwork(null, GRAPH_NODES_SIZE, GRAPH_NODES_SIZE, 1)
+    return new NeuralNetwork(null, 2, GRAPH_NODES_SIZE, 1)
   }
 
   calculateScore(nn: NNGeneticIndividual, best = false): number {
-    return nn.fitness * nn.novelty;
+    return nn.fitness * nn.novelty
   }
 }

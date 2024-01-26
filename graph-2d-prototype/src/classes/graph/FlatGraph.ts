@@ -1,12 +1,17 @@
 import BaseGenerator from '@/classes/generators/BaseGenerator'
 
-import GraphNode from '@/classes/graph/GraphNode'
+export default class FlatGraph {
+  nodes: Array<number> = []
+  maxSize: number
+  gridSize: number
 
-export default class Graph {
-  nodes: Array<GraphNode> = []
+  constructor(size: number, gridSize: number = 50) {
+    this.maxSize = size
+    this.gridSize = gridSize
+  }
 
-  add(node: GraphNode): void {
-    this.nodes.push(node)
+  add(value: number): void {
+    this.nodes.push(value)
   }
 
   createPoints(): Array<{ x: number; y: number }> {
@@ -14,13 +19,12 @@ export default class Graph {
 
     let prevX = 0
     let prevY = 0
-    for (const node of this.nodes) {
-      const sin = Math.sin(node.angleInDegrees * (Math.PI / 180))
-      const cos = Math.cos(node.angleInDegrees * (Math.PI / 180))
+    for (const angle of this.nodes) {
+      const tan = Math.tan(angle * (Math.PI / 180))
 
       const point = {
-        x: prevX + sin * node.length,
-        y: prevY + cos * node.length
+        x: prevX + tan * this.gridSize,
+        y: prevY + this.gridSize
       }
 
       result.push(point)
@@ -32,20 +36,15 @@ export default class Graph {
     return result
   }
 
-  generate(generator: BaseGenerator<Graph, GraphNode>, numberOfNodes: number): void {
-    this.nodes = [];
-    generator.reset();
-    for (let index = 0; index < numberOfNodes; index++) {
+  generate(generator: BaseGenerator<FlatGraph, number>): void {
+    this.nodes = []
+    generator.reset()
+    for (let index = 0; index < this.maxSize; index++) {
       this.add(generator.generate(this))
     }
   }
 
-  draw(
-    ctx: CanvasRenderingContext2D,
-    x: number,
-    y: number,
-    color: string
-  ): void {
+  draw(ctx: CanvasRenderingContext2D, x: number, y: number, color: string): void {
     const points = this.createPoints()
     const pointSize = 5
 
@@ -74,14 +73,7 @@ export default class Graph {
     }
   }
 
-  toArray(): Array<number> 
-  {
-    const result = [];
-    for (const node of this.nodes) {
-        result.push(node.angleInDegrees);
-        result.push(node.length);
-    }
-
-    return result;
+  toArray(): Array<number> {
+    return [...this.nodes];
   }
 }

@@ -1,10 +1,10 @@
 import Range from '@/classes/helpers/Range'
-import WaveGenerator from '@/classes/generators/WaveGenerator'
-import RandomGenerator from '@/classes/generators/RandomGenerator'
-import InterpolatedGenerator from './InterpolatedGenerator'
+import FlatWaveGenerator from '@/classes/generators/FlatWaveGenerator'
+import FlatRandomGenerator from '@/classes/generators/FlatRandomGenerator'
+import FlatInterpolatedGenerator from '@/classes/generators/FlatInterpolatedGenerator'
 import { cartesianProductOfObject } from '@/classes/helpers/CartesianSet'
 
-export default class ParametricGenerator extends InterpolatedGenerator {
+export default class FlatParametricGenerator extends FlatInterpolatedGenerator {
   phaseRange: Range
   frequencyRange: Range
   amplitudeRange: Range
@@ -14,10 +14,10 @@ export default class ParametricGenerator extends InterpolatedGenerator {
   numberOfSteps: number = 10
 
   constructor() {
-    super(new WaveGenerator(30), new RandomGenerator(-45, 45, 0, 50), 0)
+    super(new FlatWaveGenerator(), new FlatRandomGenerator(-45, 45), 0)
 
     this.phaseRange = new Range(0, 50)
-    this.frequencyRange = new Range(20, 50)
+    this.frequencyRange = new Range(0.8, 3)
     this.amplitudeRange = new Range(0.8, 1.6)
     this.noise = new Range(0.0, 1.0)
   }
@@ -34,12 +34,12 @@ export default class ParametricGenerator extends InterpolatedGenerator {
     })
   }
 
-  getWaveGenerator(): WaveGenerator {
-    return this.getGeneratorA<WaveGenerator>()
+  getWaveGenerator(): FlatWaveGenerator {
+    return this.getGeneratorA<FlatWaveGenerator>()
   }
 
-  getNoiseGenerator(): RandomGenerator {
-    return this.getGeneratorB<RandomGenerator>()
+  getNoiseGenerator(): FlatRandomGenerator {
+    return this.getGeneratorB<FlatRandomGenerator>()
   }
 
   getIterationCount(): number {
@@ -66,7 +66,7 @@ export default class ParametricGenerator extends InterpolatedGenerator {
       1.0 - Math.abs(this.getWaveGenerator().amplitude - 1.0) / this.amplitudeRange.getLength()
 
     const xScaleFactor =
-      1.0 - Math.abs(this.getWaveGenerator().frequency - 30.0) / this.frequencyRange.getLength()
+      1.0 - Math.abs(this.getWaveGenerator().frequency - 1.0) / this.frequencyRange.getLength()
 
     const value = noiseFactor * (noiseFactor * 0.7 + yScaleFactor * 0.2 + xScaleFactor * 0.1)
 

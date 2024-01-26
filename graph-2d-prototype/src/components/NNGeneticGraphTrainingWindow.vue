@@ -1,33 +1,37 @@
 <script setup lang="ts">
-import AbsoluteModal from "@/components/UI/AbsoluteModal.vue";
-import {reactive, ref} from "vue";
-import InputButton from "@/components/UI/InputButton.vue";
-import LineGraph from "@/components/UI/LineGraph.vue";
-import type LineGraphDataSet from "@/classes/helpers/LineGraphDataSet";
-import NNGeneticGraphTraining from "@/classes/NNGeneticGraphTraining";
-import type {NNGeneticIndividual} from "@/classes/classifiers/NNGenetic";
-import NNGenerator from "@/classes/generators/NNGenerator";
-import Graph from "@/classes/graph/Graph";
-import LineGraphSettings from "@/classes/helpers/LineGraphSettings";
+import AbsoluteModal from '@/components/UI/AbsoluteModal.vue'
+import { reactive, ref } from 'vue'
+import InputButton from '@/components/UI/InputButton.vue'
+import LineGraph from '@/components/UI/LineGraph.vue'
+import type LineGraphDataSet from '@/classes/helpers/LineGraphDataSet'
+import NNGeneticGraphTraining from '@/classes/NNGeneticGraphTraining'
+import type { NNGeneticIndividual } from '@/classes/classifiers/NNGenetic'
+import FlatNNGenerator from '@/classes/generators/FlatNNGenerator'
+import NNGenerator from '@/classes/generators/NNGenerator'
+import FlatWaveGenerator from '@/classes/generators/FlatWaveGenerator'
+import FlatGraph from '@/classes/graph/FlatGraph'
+import LineGraphSettings from '@/classes/helpers/LineGraphSettings'
 
-const emit = defineEmits(['finished']);
+const emit = defineEmits(['finished', 'step'])
 
 const nnGeneticTraining = new NNGeneticGraphTraining()
 
 nnGeneticTraining.finishedCallback = (result: NNGeneticIndividual | null) => {
   if (result) {
-    const generator = new NNGenerator(result.network, 10);
-    const graph = new Graph();
+    const generator = new FlatNNGenerator(result.network)
+    // const sineWaveGenerator = new FlatWaveGenerator();
 
-    graph.generate(generator, 5);
+    const graph = new FlatGraph(10)
 
-    console.log(graph);
+    graph.generate(generator)
 
-    emit('finished', graph);
+    console.log(graph)
+
+    emit('finished', graph)
   }
-};
+}
 
-const isModalVisible = ref(false);
+const isModalVisible = ref(false)
 
 function toggleTestGeneticNN() {
   if (nnGeneticTraining.isGenerationRunning) {
@@ -55,45 +59,59 @@ const graphValues = reactive<Array<LineGraphDataSet>>([
     label: 'Score',
     data: [],
     color: 'blue'
-  },
-]);
+  }
+])
 
 function GeneticNNStepCallback(
-    maxGen: number,
-    currentGen: number,
-    fitness: number,
-    novelty: number,
-    score: number
+  nn: NNGenerator,
+  maxGen: number,
+  currentGen: number,
+  fitness: number,
+  novelty: number,
+  score: number
 ) {
-  graphValues[0].data.push(fitness);
-  graphValues[1].data.push(novelty);
-  graphValues[2].data.push(score);
+  graphValues[0].data.push(fitness)
+  graphValues[1].data.push(novelty)
+  graphValues[2].data.push(score)
 
   console.log(
-      'Generation: ' + currentGen,
-      ' Fitness: ' + fitness + ' Novelty: ' + novelty.toFixed(6),
-      ' Best score: ' + score
+    'Generation: ' + currentGen,
+    ' Fitness: ' + fitness + ' Novelty: ' + novelty.toFixed(6),
+    ' Best score: ' + score
   )
+
+  if (nnGeneticTraining.bestMatch) {
+    const generator = new FlatNNGenerator(nnGeneticTraining.bestMatch.network)
+    const graph = new FlatGraph(10)
+
+    graph.generate(generator)
+
+    emit('step', graph, nnGeneticTraining.targetGraph)
+  }
 }
 
-const graphSettings = new LineGraphSettings();
-graphSettings.xRange.to = nnGeneticTraining.config.maximumGenerations;
-graphSettings.xGridInterval = Math.round(nnGeneticTraining.config.maximumGenerations / 25);
-
+const graphSettings = new LineGraphSettings()
+graphSettings.xRange.to = nnGeneticTraining.config.maximumGenerations
+graphSettings.xGridInterval = Math.round(nnGeneticTraining.config.maximumGenerations / 25)
 </script>
 <template>
   <div>
     <AbsoluteModal v-if="isModalVisible" height="600" width="800" @close="isModalVisible = false">
       <template #title>Genetic NN training of a graph reproduction</template>
 
-      <LineGraph width="760" height="540" top="10" left="20" :data="graphValues" :settings="graphSettings" />
+      <LineGraph
+        width="760"
+        height="540"
+        top="10"
+        left="20"
+        :data="graphValues"
+        :settings="graphSettings"
+      />
 
-      <InputButton left="660" top="465" @click="toggleTestGeneticNN">
-        Start / Stop
-      </InputButton>
+      <InputButton left="660" top="465" @click="toggleTestGeneticNN"> Start / Stop </InputButton>
     </AbsoluteModal>
 
-    <InputButton left="840" top="450" @click="isModalVisible = true">
+    <InputButton left="840" top="550" @click="isModalVisible = true">
       Open Genetic NN training
     </InputButton>
   </div>

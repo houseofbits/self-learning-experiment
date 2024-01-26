@@ -1,22 +1,23 @@
 import BaseGenerator from '@/classes/generators/BaseGenerator'
 import GraphNode from '@/classes/graph/GraphNode'
+import Graph from "@/classes/graph/Graph"
 
-export default class InterpolatedGenerator extends BaseGenerator {
-    generatorA: BaseGenerator;
-    generatorB: BaseGenerator;
+export default class InterpolatedGenerator extends BaseGenerator<Graph, GraphNode> {
+    generatorA: BaseGenerator<Graph, GraphNode>;
+    generatorB: BaseGenerator<Graph, GraphNode>;
     value: number;
 
-    constructor(generatorA: BaseGenerator, generatorB: BaseGenerator, value: number) {
+    constructor(generatorA: BaseGenerator<Graph, GraphNode>, generatorB: BaseGenerator<Graph, GraphNode>, value: number) {
         super();
         this.generatorA = generatorA;
         this.generatorB = generatorB;
         this.value = value;
     }
 
-    generate(): GraphNode {
+    generate(graph: Graph | null = null): GraphNode {
 
-        const nodeA = this.generatorA.generate();
-        const nodeB = this.generatorB.generate();
+        const nodeA = this.generatorA.generate(graph);
+        const nodeB = this.generatorB.generate(graph);
 
         return new GraphNode(this.lerp(nodeA.angleInDegrees, nodeB.angleInDegrees, this.value), this.lerp(nodeA.length, nodeB.length, this.value));
     }

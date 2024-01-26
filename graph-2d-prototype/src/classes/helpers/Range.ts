@@ -27,4 +27,15 @@ export default class Range {
     {
         return _.random(from, to);
     }
+
+    getIterable(numberOfSteps: number): Array<number> 
+    {
+        const result = [];
+        const length = this.getLength();
+        for (let s = 0; s < numberOfSteps; s++) {
+            result.push(this.getInterpolated((s * length) / numberOfSteps));
+        }
+
+        return result;
+    }
 };

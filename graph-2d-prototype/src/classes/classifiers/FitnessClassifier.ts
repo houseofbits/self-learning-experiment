@@ -1,5 +1,6 @@
 import * as tf from '@tensorflow/tfjs'
 import type Graph from '../graph/Graph';
+import type FlatGraph from '../graph/FlatGraph';
 
 export default class FitnessClassifier 
 {
@@ -10,10 +11,10 @@ export default class FitnessClassifier
     }
 
     async load() {
-        this.model = await tf.loadLayersModel('http://localhost:5173/downloads/graph-fitness-model/model.json');        
+        this.model = await tf.loadLayersModel('http://localhost:5173/downloads/graph-fitness-model-2/model.json');        
     }
 
-    predict(graph: Graph)
+    predict(graph: Graph | FlatGraph)
     {
         if (this.model) {
             const data = graph.toArray();

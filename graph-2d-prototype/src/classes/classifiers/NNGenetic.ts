@@ -68,6 +68,7 @@ export default class NNGenetic {
 
         if (this.callback) {
             this.callback(
+                this,
                 this.config.maximumGenerations,
                 this.iterationNum,
                 this.bestMatch.fitness,

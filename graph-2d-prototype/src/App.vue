@@ -6,7 +6,7 @@ import InputRange from './components/UI/InputRange.vue'
 import { computed, onMounted, ref, reactive } from 'vue'
 import SimpleLabel from './components/UI/SimpleLabel.vue'
 import Graph from '@/classes/graph/Graph'
-import ParametricGenerator from '@/classes/generators/PrametricGenerator'
+import FlatParametricGenerator from '@/classes/generators/FlatParametricGenerator'
 import FitnessClassifier from '@/classes/classifiers/FitnessClassifier'
 import GraphFitnessTraining from '@/classes/classifiers/GraphFitnessTraining'
 import fileDownload from 'js-file-download'
@@ -17,6 +17,9 @@ import * as tf from '@tensorflow/tfjs'
 import NNGeneticTestWindow from '@/components/NNGeneticTestWindow.vue'
 import NNGeneticGraphTrainingWindow from '@/components/NNGeneticGraphTrainingWindow.vue'
 import type NeuralNetwork from '@/classes/classifiers/NeuralNetwork'
+import FlatGraph from '@/classes/graph/FlatGraph'
+import FlatRandomGenerator from '@/classes/generators/FlatRandomGenerator'
+import FlatWaveGenerator from '@/classes/generators/FlatWaveGenerator'
 
 const ITERATION_INTERVAL_MS = 100
 
@@ -36,6 +39,7 @@ const training = new GraphFitnessTraining()
 
 const fitnessPredictionRandomness = ref(0)
 const fitnessPredictionFrequency = ref(30)
+const fitnessPredictionAmplitude = ref(1)
 const predictedFitness = ref(0)
 const calculatedFitness = ref(0)
 
@@ -59,12 +63,13 @@ function getContext(): CanvasRenderingContext2D | null {
 }
 
 function generateIteration(): void {
-  isGenerationInProgress.value = true
 
-  const parametricGenerator = new ParametricGenerator()
-  const graph = new Graph()
+    isGenerationInProgress.value = true
 
-  parametricGenerator.beginIteration(0.2)
+  const parametricGenerator = new FlatParametricGenerator()
+  const graph = new FlatGraph(40)
+
+  parametricGenerator.beginIteration(6)
   iterationCount.value = 0
   totalIterations.value = parametricGenerator.getIterationCount()
   generatedTrainingData = []
@@ -76,7 +81,7 @@ function generateIteration(): void {
       generationProgress.value = Math.round((iterationCount.value / totalIterations.value) * 100)
 
       fitnessValue.value = parametricGenerator.calculateFitnessValueForCurrentIteration()
-      graph.generate(parametricGenerator, 40)
+      graph.generate(parametricGenerator)
 
       generatedTrainingData.push(graph.toArray())
       generatedTrainingOutputs.push(fitnessValue.value)
@@ -105,6 +110,18 @@ async function train() {
   isTrainingInProgress.value = true
   remainingTrainingTime.value = null
 
+  let data = trainingData
+  if (generatedTrainingData.values.length > 0) {
+    data = {
+      input: generatedTrainingData,
+      output: generatedTrainingOutputs
+    }
+
+    console.log('Train using current data')
+  } else {
+    console.log('Train using stored data')
+  }
+
   await training.train(
     trainingData,
     (currentStep: number, totalSteps: number, msPerStep: number) => {
@@ -121,23 +138,23 @@ async function train() {
 async function predictFitness() {
   const classifier = new FitnessClassifier(training.model)
   if (!training.model) {
-    console.log('Predict using stored model');
+    console.log('Predict using stored model')
     await classifier.load()
   } else {
-    console.log('Predict using current model');
+    console.log('Predict using current model')
   }
 
-  const generator = new ParametricGenerator()
-  const graph = new Graph()
+  const generator = new FlatParametricGenerator()
+  const graph = new FlatGraph(40)
 
   generator.setInterpolationValue(fitnessPredictionRandomness.value)
   generator
     .getWaveGenerator()
-    .setFrequency(fitnessPredictionFrequency.value) //Range.random(20, 60)
-    .setAmplitude(Range.random(0.8, 1.6))
+    .setFrequency(fitnessPredictionFrequency.value)
+    .setAmplitude(fitnessPredictionAmplitude.value)
     .setPhase(Range.random(0, 50))
 
-  graph.generate(generator, 40)
+  graph.generate(generator)
 
   predictedFitness.value = await classifier.predict(graph)
   calculatedFitness.value = generator.calculateFitnessValueForCurrentIteration()
@@ -160,6 +177,14 @@ function geneticTrainingFinished(graph: Graph) {
   if (ctx) {
     ctx.reset()
     graph.draw(ctx, 200, 10, 'red')
+  }
+}
+
+function geneticGraphTrainingStep(graph: FlatGraph, target: FlatGraph) {
+  if (ctx) {
+    ctx.reset()
+    graph.draw(ctx, 200, 10, 'red')
+    target.draw(ctx, 200, 10, 'rgba(0,0,255,0.3)')
   }
 }
 
@@ -241,13 +266,21 @@ onMounted(() => {
       title="Wave frequency"
       left="840"
       top="320"
-      min="10"
-      max="60"
+      min="0.8"
+      max="3"
+    />
+    <InputRange
+      v-model="fitnessPredictionAmplitude"
+      title="Wave amplitude scale"
+      left="840"
+      top="370"
+      min="0.8"
+      max="1.6"
     />
 
     <NNGeneticTestWindow />
 
-    <NNGeneticGraphTrainingWindow @finished="geneticTrainingFinished" />
+    <NNGeneticGraphTrainingWindow @finished="geneticTrainingFinished" @step="geneticGraphTrainingStep" />
   </div>
 </template>
 

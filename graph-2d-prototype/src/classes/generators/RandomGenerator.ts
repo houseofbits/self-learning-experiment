@@ -1,8 +1,9 @@
 import BaseGenerator from "@/classes/generators//BaseGenerator";
 import GraphNode from "@/classes/graph/GraphNode";
+import Graph from "@/classes/graph/Graph"
 import Range from "@/classes/helpers/Range";
 
-export default class RandomGenerator extends BaseGenerator {
+export default class RandomGenerator extends BaseGenerator<Graph, GraphNode> {
 
     angle: Range;
     length: Range;
